@@ -40,6 +40,7 @@ export const authApi = {
   ssoLogin: (role_or_email) => api.post('/auth/sso-login', { role_or_email }),
   logout: () => api.post('/auth/logout'),
   getMe: () => api.get('/auth/me'),
+  changePassword: (current_password, new_password) => api.post('/auth/change-password', { current_password, new_password }),
 };
 
 export const dashboardApi = {
@@ -60,6 +61,8 @@ export const teamApi = {
   getHierarchy: () => api.get('/team/hierarchy'),
   getAssignees: () => api.get('/team/assignees'),
   createUser: (data) => api.post('/team/users', data),
+  resetUserPassword: (userId, new_password, must_change_password = true) =>
+    api.post(`/team/users/${userId}/reset-password`, { new_password, must_change_password }),
 };
 
 export const projectsApi = {

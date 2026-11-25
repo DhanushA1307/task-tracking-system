@@ -37,3 +37,20 @@ class CreateUserCommand:
     skills: Optional[List[str]] = None
 
 
+@dataclass
+class ChangeOwnPasswordCommand:
+    user_id: int
+    current_password: str
+    new_password: str
+
+
+@dataclass
+class ResetUserPasswordCommand:
+    actor_id: int
+    actor_role: str
+    target_user_id: int
+    new_password: str
+    must_change_password: bool = True
+
+
+

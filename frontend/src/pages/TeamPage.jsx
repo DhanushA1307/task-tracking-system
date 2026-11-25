@@ -5,7 +5,7 @@ import {
   Users, Shield, Award, Mail, Phone, MapPin, 
   ChevronRight, ArrowDown, Building2, GraduationCap, 
   CheckCircle, Briefcase, Sparkles, Send, UserPlus, X,
-  AlertCircle, Check, Loader2, Lock
+  AlertCircle, Check, Loader2, Lock, KeyRound, Eye, EyeOff, RefreshCw, Copy
 } from 'lucide-react';
 
 export const TeamPage = () => {
@@ -51,8 +51,79 @@ export const TeamPage = () => {
   const userRoleNorm = userRole.replace(' ', '_');
   const isSuperAdmin = userRoleNorm === 'super_admin' || userRoleNorm === 'superadmin';
   const isAdmin = userRoleNorm === 'admin';
+  const isTeamLead = userRoleNorm === 'team_lead' || userRoleNorm === 'team_leader' || userRoleNorm === 'teamleader';
+  const isHR = userRoleNorm === 'hr' || userRoleNorm === 'human_resource_manager';
   const canCreateUser = isSuperAdmin || isAdmin;
   const isIntern = userRole === 'intern';
+
+  // Role-restricted subordinate password reset state
+  const [resetTarget, setResetTarget] = useState(null);
+  const [resetPassword, setResetPassword] = useState('');
+  const [resetConfirm, setResetConfirm] = useState('');
+  const [resetMustChange, setResetMustChange] = useState(true);
+  const [showResetPw, setShowResetPw] = useState(false);
+  const [resetSubmitting, setResetSubmitting] = useState(false);
+  const [resetError, setResetError] = useState('');
+  const [resetSuccess, setResetSuccess] = useState('');
+  const [copiedResetPw, setCopiedResetPw] = useState(false);
+
+  const canResetMemberPassword = (member) => {
+    if (!member || member.id === user?.id || isIntern) return false;
+    const targetRole = (member.role || '').toLowerCase().replace(' ', '_');
+    if (isSuperAdmin) return targetRole !== 'super_admin' && targetRole !== 'superadmin';
+    if (isAdmin) return targetRole !== 'super_admin' && targetRole !== 'superadmin' && targetRole !== 'admin';
+    if (isTeamLead) return targetRole === 'intern';
+    if (isHR) return targetRole === 'hr_intern' || targetRole === 'human_resource_intern' || member.reporting_manager_id === user?.id;
+    return false;
+  };
+
+  const generateTempPassword = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$';
+    const bytes = new Uint32Array(12);
+    window.crypto.getRandomValues(bytes);
+    const pw = Array.from(bytes, (b) => chars[b % chars.length]).join('');
+    setResetPassword(pw);
+    setResetConfirm(pw);
+    setShowResetPw(true);
+    setCopiedResetPw(false);
+  };
+
+  const handleOpenResetModal = (member) => {
+    setResetTarget(member);
+    setResetPassword('');
+    setResetConfirm('');
+    setResetMustChange(true);
+    setShowResetPw(false);
+    setResetError('');
+    setResetSuccess('');
+    setCopiedResetPw(false);
+  };
+
+  const handleResetPasswordSubmit = async (e) => {
+    e.preventDefault();
+    if (!resetTarget) return;
+    setResetError('');
+    setResetSuccess('');
+
+    if (!resetPassword || resetPassword.length < 6) {
+      setResetError('Temporary password must be at least 6 characters.');
+      return;
+    }
+    if (resetPassword !== resetConfirm) {
+      setResetError('Passwords do not match.');
+      return;
+    }
+
+    try {
+      setResetSubmitting(true);
+      const res = await teamApi.resetUserPassword(resetTarget.id, resetPassword, resetMustChange);
+      setResetSuccess(res.data?.message || `Password reset successfully for ${resetTarget.full_name}.`);
+    } catch (err) {
+      setResetError(err.response?.data?.detail || 'Failed to reset password.');
+    } finally {
+      setResetSubmitting(false);
+    }
+  };
 
   // Allowed successor designations strictly based on user hierarchy rules:
   // - Super Admin can allocate: Admin, Human Resource Manager, Team Lead, Intern (NOT Super Admin)
@@ -525,14 +596,30 @@ export const TeamPage = () => {
                       <span className="text-[11px] text-slate-400">Edutech Division</span>
                     )}
 
-                    <a
-                      href="#chat"
-                      onClick={(e) => e.stopPropagation()}
-                      className="text-[11px] font-semibold text-brand-600 hover:text-brand-800 bg-brand-50 hover:bg-brand-100 px-2.5 py-1 rounded-lg border border-brand-200 transition-colors flex items-center space-x-1"
-                    >
-                      <Send className="w-3 h-3" />
-                      <span>Chat</span>
-                    </a>
+                    <div className="flex items-center space-x-2">
+                      {canResetMemberPassword(member) && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenResetModal(member);
+                          }}
+                          className="text-[11px] font-semibold text-amber-700 hover:text-amber-900 bg-amber-50 hover:bg-amber-100 px-2.5 py-1 rounded-lg border border-amber-200 transition-colors flex items-center space-x-1 cursor-pointer"
+                          title={`Reset password for ${member.full_name}`}
+                        >
+                          <KeyRound className="w-3 h-3" />
+                          <span>Reset PW</span>
+                        </button>
+                      )}
+                      <a
+                        href="#chat"
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-[11px] font-semibold text-brand-600 hover:text-brand-800 bg-brand-50 hover:bg-brand-100 px-2.5 py-1 rounded-lg border border-brand-200 transition-colors flex items-center space-x-1"
+                      >
+                        <Send className="w-3 h-3" />
+                        <span>Chat</span>
+                      </a>
+                    </div>
                   </div>
                 </div>
               );
@@ -852,6 +939,19 @@ export const TeamPage = () => {
                           {m.email && <span className="font-sans text-slate-500 truncate ml-2 max-w-[120px]">{m.email}</span>}
                         </div>
                       </div>
+                      {canResetMemberPassword(m) && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenResetModal(m);
+                          }}
+                          className="p-1.5 rounded-lg text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 transition-colors shrink-0 cursor-pointer"
+                          title={`Reset password for ${m.full_name}`}
+                        >
+                          <KeyRound className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -875,6 +975,136 @@ export const TeamPage = () => {
                 Close
               </button>
             </div>
+          </div>
+        </div>
+      )}
+      {/* ================= 5. ROLE-RESTRICTED PASSWORD RESET MODAL ================= */}
+      {resetTarget && (
+        <div
+          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4"
+          onClick={() => setResetTarget(null)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border border-slate-200 animate-in fade-in zoom-in-95 duration-150"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+              <div className="flex items-center space-x-2.5">
+                <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center border border-amber-200">
+                  <KeyRound className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">Reset Member Password</h3>
+                  <p className="text-[11px] text-slate-500 truncate max-w-[240px]">
+                    {resetTarget.full_name} ({resetTarget.email})
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setResetTarget(null)}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleResetPasswordSubmit} className="mt-4 space-y-3.5">
+              {resetError && (
+                <div className="p-2.5 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs flex items-center space-x-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{resetError}</span>
+                </div>
+              )}
+
+              {resetSuccess && (
+                <div className="p-2.5 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl text-xs flex items-center space-x-2">
+                  <Check className="w-4 h-4 shrink-0" />
+                  <span>{resetSuccess}</span>
+                </div>
+              )}
+
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-semibold text-slate-600">Temporary Password</span>
+                <div className="flex items-center space-x-2">
+                  <button
+                    type="button"
+                    onClick={generateTempPassword}
+                    className="text-[11px] font-semibold text-brand-700 hover:text-brand-900 flex items-center space-x-1 cursor-pointer"
+                  >
+                    <RefreshCw className="w-3 h-3" />
+                    <span>Generate</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowResetPw((prev) => !prev)}
+                    className="text-[11px] text-slate-500 hover:text-slate-700 flex items-center space-x-1 cursor-pointer"
+                  >
+                    {showResetPw ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                    <span>{showResetPw ? 'Hide' : 'Show'}</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="relative">
+                <input
+                  type={showResetPw ? 'text' : 'password'}
+                  value={resetPassword}
+                  onChange={(e) => setResetPassword(e.target.value)}
+                  placeholder="Enter new password (min 6 chars)"
+                  className="w-full px-3 py-2 pr-9 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
+                />
+                {resetPassword && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard?.writeText(resetPassword);
+                      setCopiedResetPw(true);
+                    }}
+                    title="Copy temporary password"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 cursor-pointer"
+                  >
+                    {copiedResetPw ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                  </button>
+                )}
+              </div>
+
+              <input
+                type={showResetPw ? 'text' : 'password'}
+                value={resetConfirm}
+                onChange={(e) => setResetConfirm(e.target.value)}
+                placeholder="Confirm new password"
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
+              />
+
+              <label className="flex items-center space-x-2 text-xs text-slate-600 cursor-pointer select-none pt-1">
+                <input
+                  type="checkbox"
+                  checked={resetMustChange}
+                  onChange={(e) => setResetMustChange(e.target.checked)}
+                  className="rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+                />
+                <span>Prompt user to change password on next visit to Settings</span>
+              </label>
+
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-end space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setResetTarget(null)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-colors cursor-pointer"
+                >
+                  Close
+                </button>
+                <button
+                  type="submit"
+                  disabled={resetSubmitting}
+                  className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-xl disabled:opacity-60 transition-colors flex items-center space-x-1.5 cursor-pointer"
+                >
+                  {resetSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  <span>{resetSubmitting ? 'Resetting...' : 'Reset Password'}</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

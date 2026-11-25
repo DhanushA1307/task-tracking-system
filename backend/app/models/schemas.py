@@ -26,6 +26,7 @@ class UserMeResponse(BaseModel):
     avatar: Optional[str] = None
     department: Optional[str] = None
     current_status: Optional[str] = "On Duty"
+    must_change_password: bool = False
     employee_count: Optional[str] = None
     successor_account_available: Optional[str] = None
     manager_name: Optional[str] = None
@@ -376,6 +377,25 @@ class ChatConversationItem(BaseModel):
     other_user: Optional[ChatUserItem] = None
     members: List[ChatMemberItem] = []
     unread_count: int = 0
+
+
+# ----------------- Password Management Schemas -----------------
+class ChangeOwnPasswordRequest(BaseModel):
+    current_password: str = Field(..., min_length=1)
+    new_password: str = Field(..., min_length=6, max_length=128)
+
+
+class ResetUserPasswordRequest(BaseModel):
+    new_password: str = Field(..., min_length=6, max_length=128)
+    must_change_password: bool = True
+
+
+class PasswordUpdateResponse(BaseModel):
+    success: bool
+    message: str
+    user_id: int
+    must_change_password: bool = False
+
 
 
 

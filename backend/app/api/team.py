@@ -4,9 +4,12 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models.domain import User
-from app.models.schemas import HierarchyResponse, CreateUserRequest, CreatedUserResponse
+from app.models.schemas import (
+    HierarchyResponse, CreateUserRequest, CreatedUserResponse,
+    ResetUserPasswordRequest, PasswordUpdateResponse,
+)
 from app.cqrs.queries.team_queries import GetHierarchyQuery
-from app.cqrs.commands.user_commands import CreateUserCommand
+from app.cqrs.commands.user_commands import CreateUserCommand, ResetUserPasswordCommand
 from app.cqrs.handlers.query_handlers import QueryHandlers
 from app.cqrs.handlers.command_handlers import CommandHandlers
 
@@ -34,6 +37,24 @@ def create_team_user(
     )
     result = CommandHandlers.handle_create_user(cmd, db)
     return result
+
+
+@router.post("/users/{user_id}/reset-password", response_model=PasswordUpdateResponse)
+def reset_subordinate_password(
+    user_id: int,
+    payload: ResetUserPasswordRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Role-restricted password reset for subordinate accounts inside the caller's branch."""
+    cmd = ResetUserPasswordCommand(
+        actor_id=current_user.id,
+        actor_role=current_user.role,
+        target_user_id=user_id,
+        new_password=payload.new_password,
+        must_change_password=payload.must_change_password,
+    )
+    return CommandHandlers.handle_reset_user_password(cmd, db)
 
 @router.get("/hierarchy", response_model=HierarchyResponse)
 def get_team_hierarchy(

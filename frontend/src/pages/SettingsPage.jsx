@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { settingsApi } from '../api/client';
+import { settingsApi, authApi } from '../api/client';
 import { 
   User, Mail, Phone, MapPin, Briefcase, Hash, Wrench, 
   Calendar, Shield, CheckCircle2, AlertCircle, Save, 
-  Sparkles, Camera, Plus, X, Lock, BellRing
+  Sparkles, Camera, Plus, X, Lock, BellRing, Eye, EyeOff, Loader2
 } from 'lucide-react';
 
 export const SettingsPage = () => {
@@ -50,6 +50,48 @@ export const SettingsPage = () => {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('profile'); // 'profile' or 'security'
+
+  // Change password state
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPasswords, setShowPasswords] = useState(false);
+  const [pwLoading, setPwLoading] = useState(false);
+  const [pwError, setPwError] = useState('');
+  const [pwSuccess, setPwSuccess] = useState('');
+
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    setPwError('');
+    setPwSuccess('');
+
+    if (!currentPassword) {
+      setPwError('Please enter your current password.');
+      return;
+    }
+    if (!newPassword || newPassword.length < 6) {
+      setPwError('New password must be at least 6 characters.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPwError('New password and confirmation do not match.');
+      return;
+    }
+
+    try {
+      setPwLoading(true);
+      const res = await authApi.changePassword(currentPassword, newPassword);
+      setPwSuccess(res.data?.message || 'Password updated successfully.');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      if (refreshUser) await refreshUser();
+    } catch (err) {
+      setPwError(err.response?.data?.detail || 'Failed to update password. Please verify your current password.');
+    } finally {
+      setPwLoading(false);
+    }
+  };
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -136,8 +178,9 @@ export const SettingsPage = () => {
           </div>
 
           {/* Tab Selector */}
-          {/*<div className="bg-slate-100 p-1 rounded-xl flex items-center border border-slate-200 text-xs">
+          <div className="bg-slate-100 p-1 rounded-xl flex items-center border border-slate-200 text-xs">
             <button
+              type="button"
               onClick={() => setActiveTab('profile')}
               className={`px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer ${
                 activeTab === 'profile' ? 'bg-white text-brand-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
@@ -146,14 +189,15 @@ export const SettingsPage = () => {
               Profile Attributes
             </button>
             <button
+              type="button"
               onClick={() => setActiveTab('security')}
               className={`px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer ${
                 activeTab === 'security' ? 'bg-white text-brand-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Security & Access
+              Security &amp; Access
             </button>
-          </div>*/}
+          </div>
         </div>
       </div>
 
@@ -522,26 +566,70 @@ export const SettingsPage = () => {
             </div>
           </div>
 
-          <div className="max-w-md space-y-3 pt-2">
-            <h4 className="text-xs font-bold uppercase text-slate-700">Change Password</h4>
+          {user?.must_change_password && (
+            <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 flex items-center space-x-2">
+              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+              <span>Your password was recently reset by management. Please set a new personal password below.</span>
+            </div>
+          )}
+
+          <form onSubmit={handleChangePassword} className="max-w-md space-y-3 pt-2">
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-bold uppercase text-slate-700">Change Password</h4>
+              <button
+                type="button"
+                onClick={() => setShowPasswords((prev) => !prev)}
+                className="text-[11px] text-slate-500 hover:text-slate-700 flex items-center space-x-1 cursor-pointer"
+              >
+                {showPasswords ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                <span>{showPasswords ? 'Hide' : 'Show'}</span>
+              </button>
+            </div>
+
+            {pwError && (
+              <div className="p-2.5 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs flex items-center space-x-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{pwError}</span>
+              </div>
+            )}
+
+            {pwSuccess && (
+              <div className="p-2.5 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl text-xs flex items-center space-x-2">
+                <CheckCircle2 className="w-4 h-4 shrink-0" />
+                <span>{pwSuccess}</span>
+              </div>
+            )}
+
             <input
-              type="password"
-              placeholder="Current Password (admin123)"
-              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
+              type={showPasswords ? 'text' : 'password'}
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              placeholder="Current Password"
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
             />
             <input
-              type="password"
-              placeholder="New Password"
-              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
+              type={showPasswords ? 'text' : 'password'}
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="New Password (min 6 characters)"
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
+            />
+            <input
+              type={showPasswords ? 'text' : 'password'}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Confirm New Password"
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
             />
             <button
-              type="button"
-              onClick={() => alert('Password updated successfully!')}
-              className="px-4 py-2 bg-slate-800 text-white text-xs font-semibold rounded-xl hover:bg-slate-900 transition-colors"
+              type="submit"
+              disabled={pwLoading}
+              className="px-4 py-2 bg-slate-800 text-white text-xs font-semibold rounded-xl hover:bg-slate-900 disabled:opacity-60 transition-colors flex items-center space-x-1.5 cursor-pointer"
             >
-              Update Password
+              {pwLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              <span>{pwLoading ? 'Updating...' : 'Update Password'}</span>
             </button>
-          </div>
+          </form>
         </div>
       )}
     </div>

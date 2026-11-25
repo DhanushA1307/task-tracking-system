@@ -5,8 +5,11 @@ from app.core.security import get_current_user, oauth2_scheme
 from app.core.notification_broadcaster import broadcaster
 from app.core.websocket_manager import ws_manager
 from app.models.domain import User
-from app.models.schemas import LoginRequest, SSOLoginRequest, TokenResponse, UserMeResponse
-from app.cqrs.commands.user_commands import LoginCommand, SSOLoginCommand
+from app.models.schemas import (
+    LoginRequest, SSOLoginRequest, TokenResponse, UserMeResponse,
+    ChangeOwnPasswordRequest, PasswordUpdateResponse,
+)
+from app.cqrs.commands.user_commands import LoginCommand, SSOLoginCommand, ChangeOwnPasswordCommand
 from app.cqrs.handlers.command_handlers import CommandHandlers
 from app.cqrs.handlers.query_handlers import QueryHandlers
 from app.cqrs.queries.user_queries import GetUserProfileQuery
@@ -59,9 +62,25 @@ def get_current_user_profile(
         "avatar": profile_data["photo"],
         "department": profile_data["department"],
         "current_status": current_user.current_status or "On Duty",
+        "must_change_password": bool(current_user.must_change_password),
         "employee_count": profile_data.get("employee_count"),
         "successor_account_available": profile_data.get("successor_account_available"),
         "manager_name": profile_data.get("reporting_manager_name"),
         "manager_successor_available": profile_data.get("manager_successor_available"),
     }
+
+
+@router.post("/change-password", response_model=PasswordUpdateResponse)
+def change_own_password(
+    payload: ChangeOwnPasswordRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Allow an authenticated user to change their own password after verifying current password."""
+    cmd = ChangeOwnPasswordCommand(
+        user_id=current_user.id,
+        current_password=payload.current_password,
+        new_password=payload.new_password,
+    )
+    return CommandHandlers.handle_change_own_password(cmd, db)
 

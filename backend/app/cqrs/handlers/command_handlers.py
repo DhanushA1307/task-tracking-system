@@ -7,7 +7,8 @@ from sqlalchemy import func
 from app.models.domain import User, UserProfile, Task, TaskAssignment, Notification, Project
 from app.core.security import verify_password, create_access_token, get_password_hash
 from app.cqrs.commands.user_commands import (
-    LoginCommand, SSOLoginCommand, UpdateUserProfileCommand, CreateUserCommand
+    LoginCommand, SSOLoginCommand, UpdateUserProfileCommand, CreateUserCommand,
+    ChangeOwnPasswordCommand, ResetUserPasswordCommand,
 )
 from app.cqrs.commands.task_commands import (
     CreateTaskCommand, UpdateTaskStatusCommand, UpdateTaskDetailsCommand, DeleteTaskCommand
@@ -60,6 +61,7 @@ class CommandHandlers:
                 "avatar": profile.profile_photo if profile else None,
                 "department": profile.department if profile else "Edutech",
                 "current_status": user.current_status or "On Duty",
+                "must_change_password": bool(user.must_change_password),
                 "employee_count": prof_data.get("employee_count"),
                 "successor_account_available": prof_data.get("successor_account_available"),
                 "manager_name": prof_data.get("reporting_manager_name"),
@@ -132,6 +134,7 @@ class CommandHandlers:
                 "avatar": profile.profile_photo if profile else None,
                 "department": profile.department if profile else "Edutech",
                 "current_status": user.current_status or "On Duty",
+                "must_change_password": bool(user.must_change_password),
                 "employee_count": prof_data.get("employee_count"),
                 "successor_account_available": prof_data.get("successor_account_available"),
                 "manager_name": prof_data.get("reporting_manager_name"),
@@ -613,5 +616,123 @@ class CommandHandlers:
             "current_status": new_user.current_status,
             "message": f"Successfully created user '{new_user.full_name}' with designation '{desig_name}'."
         }
+
+    @staticmethod
+    def handle_change_own_password(cmd: ChangeOwnPasswordCommand, db: Session) -> Dict[str, Any]:
+        """Verify current password and update the authenticated user's password."""
+        user = db.query(User).filter(User.id == cmd.user_id).first()
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+        if not verify_password(cmd.current_password, user.password_hash or ""):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Current password is incorrect."
+            )
+
+        if cmd.new_password == cmd.current_password:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="New password must be different from the current password."
+            )
+
+        user.password_hash = get_password_hash(cmd.new_password)
+        user.must_change_password = False
+        user.updated_at = datetime.now(timezone.utc)
+        db.commit()
+
+        return {
+            "success": True,
+            "message": "Your password has been updated successfully.",
+            "user_id": user.id,
+            "must_change_password": False,
+        }
+
+    @staticmethod
+    def _can_reset_user_password(
+        actor_id: int,
+        actor_role_norm: str,
+        target_user: User,
+        db: Session,
+    ) -> bool:
+        """Enforce strict role hierarchy and branch isolation for password resets."""
+        if target_user.id == actor_id:
+            return False
+
+        target_role_norm = (target_user.role or "").strip().lower().replace(" ", "_")
+
+        if actor_role_norm in ["super_admin", "superadmin"]:
+            return target_role_norm not in ["super_admin", "superadmin"]
+
+        target_manager_id = target_user.profile.reporting_manager_id if target_user.profile else None
+
+        if actor_role_norm == "admin":
+            if target_role_norm in ["super_admin", "superadmin", "admin"]:
+                return False
+            if target_manager_id == actor_id:
+                return True
+            if target_manager_id:
+                manager = db.query(User).filter(User.id == target_manager_id).first()
+                manager_role = (manager.role or "").strip().lower().replace(" ", "_") if manager else ""
+                manager_parent_id = manager.profile.reporting_manager_id if manager and manager.profile else None
+                return manager_role == "team_lead" and manager_parent_id == actor_id
+            return False
+
+        if actor_role_norm == "team_lead":
+            return target_role_norm == "intern" and target_manager_id == actor_id
+
+        if actor_role_norm in ["hr", "human_resource_manager"]:
+            return target_manager_id == actor_id or target_role_norm in ["hr_intern", "human_resource_intern"]
+
+        return False
+
+    @staticmethod
+    def handle_reset_user_password(cmd: ResetUserPasswordCommand, db: Session) -> Dict[str, Any]:
+        """Reset a subordinate account's password with role & branch authorization."""
+        actor_role_norm = (cmd.actor_role or "").strip().lower().replace(" ", "_")
+        if actor_role_norm not in ["super_admin", "superadmin", "admin", "team_lead", "hr", "human_resource_manager"]:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only Super Admin, Admin, Team Lead, or HR can reset subordinate passwords."
+            )
+
+        target_user = db.query(User).filter(User.id == cmd.target_user_id).first()
+        if not target_user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Target user not found")
+
+        if target_user.id == cmd.actor_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Use Settings -> Security to change your own password."
+            )
+
+        if not CommandHandlers._can_reset_user_password(cmd.actor_id, actor_role_norm, target_user, db):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You are not authorized to reset the password for a user outside your reporting hierarchy."
+            )
+
+        target_user.password_hash = get_password_hash(cmd.new_password)
+        target_user.must_change_password = bool(cmd.must_change_password)
+        target_user.updated_at = datetime.now(timezone.utc)
+
+        actor = db.query(User).filter(User.id == cmd.actor_id).first()
+        actor_name = actor.full_name if actor and actor.full_name else "Management"
+        notif = Notification(
+            user_id=target_user.id,
+            title="Password Reset",
+            message=f"Your account password was reset by {actor_name}.",
+            notification_type="security_update",
+        )
+        db.add(notif)
+        db.commit()
+
+        return {
+            "success": True,
+            "message": f"Password reset successfully for {target_user.full_name or target_user.email}.",
+            "user_id": target_user.id,
+            "must_change_password": bool(target_user.must_change_password),
+        }
+
 
 
