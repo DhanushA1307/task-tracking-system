@@ -1,0 +1,6 @@
+id,is_group,title,description,created_by_id,created_at,updated_at,last_message_at,last_message_preview
+9,False,,,12,2026-11-19 16:03:05.614875+05:30,2026-11-19 16:03:05.614875+05:30,2026-11-19 16:03:05.614875+05:30,Conversation started
+10,True,Intern Frnds,,12,2026-11-19 16:06:18.148736+05:30,2026-11-19 16:11:35.613711+05:30,2026-11-19 16:11:35.613711+05:30,Ananya: Hello
+11,False,,,11,2026-11-19 16:29:02.969595+05:30,2026-11-19 16:29:27.690792+05:30,2026-11-19 16:29:27.690792+05:30,how are you?
+1,False,,,2,2026-11-19 15:48:37.671139+05:30,2026-11-19 17:09:22.578094+05:30,2026-11-19 17:09:22.578094+05:30,"Hi intern1! Received your message, this is the second message."
+5,False,,,2,2026-11-19 15:48:37.915343+05:30,2026-11-19 17:09:22.780095+05:30,2026-11-19 17:09:22.780095+05:30,"Hi HR Manager, checking in on my intern documentation."

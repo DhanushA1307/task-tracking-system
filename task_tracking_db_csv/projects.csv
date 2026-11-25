@@ -1,0 +1,6 @@
+id,name,description,client_name,department,start_date,end_date,status,manager_id
+1,Edutech LMS Platform,Enterprise learning management and skill tracking platform for higher education.,EduTech Global,Edutech,2026-01-01,2026-12-31,In Progress,
+2,Ingage Task Tracking System,Internal hierarchy task assignment and work status tracking system.,Ingage Internal,Ingage,2026-02-01,2026-08-30,In Progress,
+3,Rezov Analytics Suite,Operational analytics and real-time dashboard visualization engine.,Rezov Inc.,Rezov,2026-01-15,2026-10-15,In Progress,
+4,AI Assessment Portal,New AI portal,Internal,Edutech,2026-11-04,2027-02-02,In Progress,1
+5,Animation Era,From 2D Context Converting into 3D,Internal,Rezov,2026-11-05,2027-02-03,In Progress,3

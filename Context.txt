@@ -1,0 +1,30 @@
+Project Title: Task Tracking System
+
+Project Summary:
+    In this Project, Tracking the Task which assigned under their hieraricy (The hieraricy is "Super Admin", "Admin", "Team Lead", "Intern"), The flow should in
+    "Log In"->Main Page [Dashboard Page]
+                |
+                --> 01. Dashboard [It Depends on Designation Role]
+                --> 02. My Task  [It Depends on Designation Role]                
+                --> 03. Team Members [Present the Predecessor or Successor hieraricy (Depends on the Designation Role)]
+                --> 04. Settings [It Depends on Designation Role]                    
+    
+    By Default, The Main Page Should Present "Company Logo" on the Edge of Left Side, "Notification" Last 2nd Edge of Right Side and the "Profile" Edge of Right Side
+    In The "Log In" Page, Two Context in should present in two sides  
+        1.should give the input as "Email" and "Password" follows with "Submit" button
+        2. SSO Button, [By Default the User of the Designation Person should redirect the Dashboard Page]
+    Page 1: 
+        For Intern Designation, It should show the work count completion, In progress ad overdue 
+    Page 2:
+        For Intern Designation on the My Task, show the task status, either in board mode or tabular mode, if in tabular mode show in Pagination format
+    Page 3:
+        For Intern Designation, Showing their Higher Designation position Person
+    Page 4:
+        For Intern Designation, Showing their "Photo", "Full Name", "mail-Id Address", "Employee Designation Number", "Employee Designation Name", "Skill set", "Full Home Address"
+
+    Theme Colour: Mention on the attached file "C:\Users\ASUS\Downloads\Ingage_Technologies\Task_Tracking_System\theme-colour.png"
+
+Project Tech Stack:
+    Frontend: ReactJS
+    Backend: Python (FastAPI) [CQRS]
+    Database: PostgreSQL

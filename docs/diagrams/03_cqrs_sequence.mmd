@@ -1,0 +1,19 @@
+sequenceDiagram
+    autonumber
+    actor User as Client (Frontend)
+    participant Router as FastAPI Router
+    participant CQRS as CQRS Command / Query
+    participant Handler as Handler Layer
+    participant Broadcaster as NotificationBroadcaster / WSManager
+    participant DB as PostgreSQL (task_tracking_db)
+
+    User->>Router: POST /api/tasks (Create Task Payload)
+    Router->>CQRS: Instantiate CreateTaskCommand
+    CQRS->>Handler: CommandHandlers.handle_create_task(cmd, db)
+    Handler->>DB: INSERT INTO tasks & task_assignments
+    DB-->>Handler: Return persisted Task Entity
+    Handler->>Broadcaster: NotificationBroadcaster.dispatch_task_assigned_event()
+    Broadcaster->>DB: INSERT INTO notifications
+    Broadcaster-->>User: Push live notification over WebSocket
+    Handler-->>Router: Task Entity
+    Router-->>User: 201 Created (TaskResponse JSON)

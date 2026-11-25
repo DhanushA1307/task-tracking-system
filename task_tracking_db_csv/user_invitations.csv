@@ -1,0 +1,2 @@
+id,email,role,token_hash,sent_at,expires_at,status,completed_at,revoked_at,last_attempt_at,attempt_window_started_at,window_attempt_count,user_id,invited_by_id
+1,drickcurve123@gmail.com,intern,,2026-10-23 18:36:23.450104+05:30,,pending,,,2026-10-23 18:36:23.450104+05:30,2026-10-23 18:36:23.450104+05:30,1,2,1

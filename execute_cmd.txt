@@ -1,0 +1,166 @@
+Powershell:
+
+Frontend:
+cd frontend; npm.cmd run dev
+
+Backend (Option 1 - Helper Script):
+.\start_backend.ps1
+
+Backend (Option 2 - Clean One-Liner):
+Stop-Process -Name "python*" -Force -ErrorAction SilentlyContinue; cd backend; $env:PYTHONPATH='.'; & "venv\Scripts\python.exe" -m uvicorn main:app --host 127.0.0.1 --port 8000 --reload
+
+# Check current telemetry and next scheduled run:
+& "backend\venv\Scripts\python.exe" -m app.services.notification_cleanup_service --status
+
+# Run cleanup manually:
+& "backend\venv\Scripts\python.exe" -m app.services.notification_cleanup_service --run
+
+# Enable or disable the service:
+& "backend\venv\Scripts\python.exe" -m app.services.notification_cleanup_service --enable
+& "backend\venv\Scripts\python.exe" -m app.services.notification_cleanup_service --disable
+
+Login page
+
+Side 2
+
+<div className="w-full lg:w-1/2 p-8 sm:p-12 lg:p-16 bg-gradient-to-br from-brand-50/70 via-slate-50 to-brand-100/40 flex flex-col justify-between">
+          <div>
+            <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-brand-100 text-brand-800 text-xs font-semibold mb-6 border border-brand-200">
+              <Sparkles className="w-3.5 h-3.5 text-brand-600" />
+              <span>Enterprise Single Sign-On</span>
+            </div>
+
+            <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
+              One-Click SSO Sign In
+            </h2>
+            <p className="text-sm text-slate-600 mt-2 leading-relaxed">
+              Authenticate via organizational identity provider. By default, designated hierarchy users redirect straight to the <strong>Dashboard Page</strong>.
+            </p>
+
+            {/* Primary SSO Button */}
+            <div className="mt-8">
+              <button
+                type="button"
+                onClick={() => handleSSO('intern')}
+                disabled={loading || ssoLoading}
+                className="w-full py-3.5 px-5 bg-white hover:bg-slate-50 text-slate-800 border-2 border-brand-500 rounded-xl font-semibold text-sm shadow-sm hover:shadow-md transition-all flex items-center justify-center space-x-3 cursor-pointer group"
+              >
+                <div className="w-6 h-6 rounded-md bg-brand-600 text-white flex items-center justify-center font-bold text-xs">
+                  in
+                </div>
+                <span className="text-slate-900 group-hover:text-brand-800">
+                  {ssoLoading ? 'Connecting to Identity Provider...' : 'Sign In with Company SSO (Default Intern)'}
+                </span>
+                <ArrowRight className="w-4 h-4 text-brand-600 group-hover:translate-x-1 transition-transform" />
+              </button>
+            </div>
+
+            {/* Hierarchy Quick Test Switcher */}
+            <div className="mt-8 pt-6 border-t border-slate-200/80">
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">
+                Or SSO Direct By Designation Role:
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {/* Intern */}
+                <button
+                  type="button"
+                  onClick={() => handleSSO('intern')}
+                  className="p-3 bg-white/90 hover:bg-white rounded-xl border border-slate-200 hover:border-brand-400 text-left transition-all shadow-2xs hover:shadow-sm cursor-pointer group"
+                >
+                  <div className="flex items-center space-x-2.5">
+                    <div className="p-2 rounded-lg bg-brand-100 text-brand-700 group-hover:bg-brand-600 group-hover:text-white transition-colors">
+                      <GraduationCap className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-slate-800 group-hover:text-brand-700 truncate">Intern Role</p>
+                      <p className="text-[11px] text-slate-500 truncate">Dhanush (Frontend Intern)</p>
+                    </div>
+                  </div>
+                </button>
+
+                {/* Team Lead */}
+                <button
+                  type="button"
+                  onClick={() => handleSSO('team_lead')}
+                  className="p-3 bg-white/90 hover:bg-white rounded-xl border border-slate-200 hover:border-brand-400 text-left transition-all shadow-2xs hover:shadow-sm cursor-pointer group"
+                >
+                  <div className="flex items-center space-x-2.5">
+                    <div className="p-2 rounded-lg bg-amber-100 text-amber-700 group-hover:bg-brand-600 group-hover:text-white transition-colors">
+                      <Users className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-slate-800 group-hover:text-brand-700 truncate">Team Lead Role</p>
+                      <p className="text-[11px] text-slate-500 truncate">Sarah Jenkins (Lead)</p>
+                    </div>
+                  </div>
+                </button>
+
+                {/* Admin */}
+                <button
+                  type="button"
+                  onClick={() => handleSSO('admin')}
+                  className="p-3 bg-white/90 hover:bg-white rounded-xl border border-slate-200 hover:border-brand-400 text-left transition-all shadow-2xs hover:shadow-sm cursor-pointer group"
+                >
+                  <div className="flex items-center space-x-2.5">
+                    <div className="p-2 rounded-lg bg-blue-100 text-blue-700 group-hover:bg-brand-600 group-hover:text-white transition-colors">
+                      <Building2 className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-slate-800 group-hover:text-brand-700 truncate">Admin Role</p>
+                      <p className="text-[11px] text-slate-500 truncate">Alex Morgan (Director)</p>
+                    </div>
+                  </div>
+                </button>
+
+                {/* Super Admin */}
+                <button
+                  type="button"
+                  onClick={() => handleSSO('super_admin')}
+                  className="p-3 bg-white/90 hover:bg-white rounded-xl border border-slate-200 hover:border-brand-400 text-left transition-all shadow-2xs hover:shadow-sm cursor-pointer group"
+                >
+                  <div className="flex items-center space-x-2.5">
+                    <div className="p-2 rounded-lg bg-purple-100 text-purple-700 group-hover:bg-brand-600 group-hover:text-white transition-colors">
+                      <Shield className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-slate-800 group-hover:text-brand-700 truncate">Super Admin</p>
+                      <p className="text-[11px] text-slate-500 truncate">Elizabeth Reed (VP)</p>
+                    </div>
+                  </div>
+                </button>
+
+                {/* Human Resource Manager (HR) */}
+                <button
+                  type="button"
+                  onClick={() => handleSSO('hr')}
+                  className="p-3 bg-white/90 hover:bg-white rounded-xl border border-slate-200 hover:border-emerald-500 text-left transition-all shadow-2xs hover:shadow-sm cursor-pointer group sm:col-span-2 bg-gradient-to-r from-emerald-50/50 to-white"
+                >
+                  <div className="flex items-center space-x-2.5">
+                    <div className="p-2 rounded-lg bg-emerald-100 text-emerald-700 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+                      <Shield className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center space-x-1.5">
+                        <p className="text-xs font-bold text-slate-800 group-hover:text-emerald-700 truncate">Human Resource Manager (HR)</p>
+                        <span className="text-[9px] bg-emerald-100 text-emerald-800 font-extrabold px-1.5 py-0.2 rounded-full uppercase">Direct HR Access</span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 truncate">hr@ingage.com • Intern Record Details</p>
+                    </div>
+                  </div>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Benefits summary */}
+          {/* <div className="mt-8 space-y-2 text-xs text-slate-600">
+            <div className="flex items-center space-x-2">
+              <CheckCircle2 className="w-3.5 h-3.5 text-brand-600" />
+              <span>Strict 4-level hierarchy enforcement (Super Admin → Admin → Lead → Intern)</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <CheckCircle2 className="w-3.5 h-3.5 text-brand-600" />
+              <span>Real-time work counts: Completed, In Progress, and Overdue</span>
+            </div>
+          </div> */}
+        </div>

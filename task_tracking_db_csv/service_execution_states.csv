@@ -1,0 +1,2 @@
+id,service_name,is_enabled,last_executed_at,last_execution_status,last_execution_type,last_deleted_count,last_scanned_count,last_error_message,created_at,updated_at
+1,notification_retention_service,True,2026-11-22 19:30:00+05:30,SKIPPED_DISABLED,MANUAL,2,58,,2026-11-19 11:54:38.592898+05:30,2026-11-19 17:09:32.002708+05:30

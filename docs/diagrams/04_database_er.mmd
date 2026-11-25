@@ -1,0 +1,21 @@
+erDiagram
+    users ||--o| user_profiles : "has 1:1"
+    users ||--o{ task_assignments : "is assigned"
+    users ||--o{ tasks : "creates (assigned_by)"
+    users ||--o{ notifications : "receives"
+    users ||--o{ attendance_records : "logs daily"
+    users ||--o{ chat_members : "participates in"
+    users ||--o{ chat_messages : "sends"
+    users ||--o{ intern_records : "manages/creates"
+    users ||--o{ projects : "manages"
+
+    projects ||--o{ tasks : "contains"
+    tasks ||--o{ task_assignments : "allocates"
+    tasks ||--o{ notifications : "triggers"
+
+    chat_conversations ||--o{ chat_members : "has members"
+    chat_conversations ||--o{ chat_messages : "contains messages"
+
+    daily_attendances ||--o{ attendance_sessions : "tracks"
+    daily_attendances ||--o{ attendance_breaks : "records"
+    daily_attendances ||--o{ attendance_corrections : "requests"

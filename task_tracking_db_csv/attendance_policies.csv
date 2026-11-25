@@ -1,0 +1,2 @@
+id,company_name,shift_start_time,grace_period_minutes,expected_daily_hours,cutoff_time,timezone,deduct_lunch_break,deduct_tea_break,deduct_personal_break,deduct_short_break,max_break_minutes,updated_at
+1,Ingage,09:30:00,15,8.00,14:00:00,Asia/Kolkata,True,False,True,False,60,2026-10-23 18:36:05.006575+05:30

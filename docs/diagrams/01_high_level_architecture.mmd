@@ -1,0 +1,35 @@
+flowchart TD
+    subgraph Client["Frontend (React 19 + Vite + Tailwind CSS)"]
+        UI["React SPA Entry (main.jsx & App.jsx)"]
+        AuthCtx["AuthContext (JWT in localStorage)"]
+        Pages["Pages (Dashboard, Tasks, Team, Chat, Attendance, HR, Settings)"]
+        APIClient["API Client Layer (Axios Interceptors client.js)"]
+        WSClient["WebSocket Clients (Presence & Chat)"]
+    end
+
+    subgraph Server["Backend (FastAPI + Python 3.13)"]
+        FastAPIMain["FastAPI Core (main.py + Lifespan Manager)"]
+        Routers["API Routers (11 Modular Endpoints)"]
+        CQRS["CQRS Layer (Commands & Queries)"]
+        Handlers["Handler Engine (CommandHandlers, QueryHandlers, ChatHandlers)"]
+        WSManager["WebSocket Gateway (ws_manager & Broadcast Channel)"]
+        BackgroundServices["Background Daemons (8-Min Presence & 90-Day Retention)"]
+    end
+
+    subgraph Storage["Database Layer (PostgreSQL / task_tracking_db & CSVs)"]
+        DB["PostgreSQL (task_tracking_db - 27 Tables)"]
+        CSVs["CSV Mirror (task_tracking_db_csv - 27 CSV Files)"]
+    end
+
+    UI --> AuthCtx
+    AuthCtx --> Pages
+    Pages --> APIClient
+    Pages --> WSClient
+    APIClient -->|HTTP / REST JWT Bearer| Routers
+    WSClient <-->|WSS Bi-directional| WSManager
+    Routers --> CQRS
+    CQRS --> Handlers
+    Handlers -->|SQLAlchemy ORM psycopg2| DB
+    WSManager -->|Live State Push| Client
+    BackgroundServices -->|Periodic Execution| DB
+    DB <--->|Data Ingestion / Export| CSVs

@@ -1,0 +1,27 @@
+graph TD
+    App["App.jsx (Layout & Hash Router)"]
+    App --> Navbar["Navbar.jsx"]
+    Navbar --> NotificationDrawer["NotificationDrawer.jsx"]
+    Navbar --> BrandLogo["BrandLogo.jsx"]
+    App --> Sidebar["Sidebar.jsx"]
+
+    App --> LoginPage["LoginPage.jsx (Split-Screen Login & Quick Pills)"]
+    App --> DashboardPage["DashboardPage.jsx"]
+    DashboardPage --> AttendanceWidget["Dynamic Attendance Punch (Check-in/Lunch/Break/Check-out)"]
+    DashboardPage --> TaskCountAnalysis["Task Count Analytics (Scoped to Role User)"]
+    DashboardPage --> TeamMembersList["Team Availability & Successor Accounts"]
+
+    App --> TasksPage["TasksPage.jsx"]
+    TasksPage --> TaskToolbar["Toolbar: Total Assigned/Received Pill + All Tasks Toggle + Filters"]
+    TasksPage --> TabularView["Tabular View (Multi-factor Sorting + Repeating Task IDs)"]
+    TasksPage --> BoardView["Board Kanban View (Backlog, In Progress, Review, Completed, Overdue)"]
+    TasksPage --> AnalysisView["Project Analysis Mode (Completion & Progress Bar)"]
+    TasksPage --> TaskModal["TaskModal.jsx (Create Task & Multi-assign)"]
+    TasksPage --> TaskDetailModal["TaskDetailModal.jsx (Progress & Status)"]
+    TasksPage --> GroupMembersPopup["Group Task Allocated Members Popup (A to Z)"]
+
+    App --> TeamPage["TeamPage.jsx (Strict Branch Isolation & 1st Successor Popups)"]
+    App --> ChatPage["ChatPage.jsx (1-on-1 Direct Chat & Group Conversations + WS)"]
+    App --> AttendancePage["AttendancePage.jsx (My Attendance Pagination & Team Attendance)"]
+    App --> InternRecordsPage["InternRecordsPage.jsx (Marksheets & Student Documentation)"]
+    App --> SettingsPage["SettingsPage.jsx (Profile, Password Change & System Preferences)"]

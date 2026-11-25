@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>System Architecture &amp; End-to-End Flow Analysis – Task Tracking System</title>
+<style>
+  /* ── Reset & Base ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    font-size: 15px;
+    line-height: 1.7;
+    color: #1a1a2e;
+    background: #f4f6fb;
+  }
+
+  /* ── Page Wrapper ── */
+  .page-wrapper {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 32px 24px 80px;
+  }
+
+  /* ── Cover Header ── */
+  .cover {
+    background: linear-gradient(135deg, #0f3460 0%, #16213e 60%, #1a1a2e 100%);
+    color: #fff;
+    border-radius: 16px;
+    padding: 56px 48px 48px;
+    margin-bottom: 40px;
+    position: relative;
+    overflow: hidden;
+  }
+  .cover::before {
+    content: "";
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse at top right, rgba(99,179,237,.18) 0%, transparent 60%);
+    pointer-events: none;
+  }
+  .cover h1 {
+    font-size: 2.4rem; font-weight: 800; letter-spacing: -.5px;
+    margin-bottom: 10px; position: relative;
+  }
+  .cover p  { font-size: 1rem; opacity: .82; position: relative; }
+  .cover .badges { margin-top: 24px; display: flex; gap: 10px; flex-wrap: wrap; position: relative; }
+  .badge {
+    padding: 4px 14px; border-radius: 999px; font-size: .78rem;
+    font-weight: 600; letter-spacing: .4px;
+    background: rgba(255,255,255,.12); color: #e2e8f0;
+    border: 1px solid rgba(255,255,255,.18);
+  }
+
+  /* ── TOC ── */
+  .toc {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 24px 28px;
+    margin-bottom: 36px;
+  }
+  .toc h2 { font-size: 1rem; text-transform: uppercase; letter-spacing: 1px; color: #718096; margin-bottom: 12px; }
+  .toc ol { padding-left: 20px; }
+  .toc li { margin: 4px 0; }
+  .toc a  { color: #3182ce; text-decoration: none; font-weight: 500; }
+  .toc a:hover { text-decoration: underline; }
+
+  /* ── Sections ── */
+  section { margin-bottom: 52px; }
+  h2.section-title {
+    font-size: 1.55rem; font-weight: 700;
+    color: #0f3460;
+    border-bottom: 3px solid #3182ce;
+    padding-bottom: 8px;
+    margin-bottom: 24px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  h2.section-title .num {
+    background: #3182ce; color: #fff;
+    width: 34px; height: 34px;
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: .9rem; flex-shrink: 0;
+  }
+  h3 { font-size: 1.1rem; font-weight: 600; color: #2d3748; margin: 20px 0 10px; }
+
+  /* ── Cards / Prose Blocks ── */
+  .card {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 24px 28px;
+    margin-bottom: 20px;
+  }
+  .card p, .card li { color: #4a5568; }
+  .card ul, .card ol { padding-left: 20px; }
+  .card li { margin: 4px 0; }
+
+  /* ── Info / Warning Callouts ── */
+  .callout {
+    display: flex; gap: 14px; align-items: flex-start;
+    padding: 16px 20px; border-radius: 10px; margin: 16px 0;
+  }
+  .callout-info    { background: #ebf8ff; border-left: 4px solid #3182ce; }
+  .callout-warning { background: #fffbeb; border-left: 4px solid #d69e2e; }
+  .callout-success { background: #f0fff4; border-left: 4px solid #38a169; }
+  .callout .icon { font-size: 1.3rem; flex-shrink: 0; margin-top: 2px; }
+  .callout p { margin: 0; color: #2d3748; font-size: .93rem; }
+
+  /* ── Diagram Container & Lightbox Trigger ── */
+  .diagram-wrap {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    overflow: hidden;
+    margin: 20px 0;
+    text-align: center;
+  }
+  .diagram-wrap figcaption {
+    padding: 10px 16px;
+    font-size: .82rem;
+    color: #718096;
+    background: #f7fafc;
+    border-top: 1px solid #e2e8f0;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .diagram-wrap figcaption::before { content: "🔍"; }
+  .diagram-trigger {
+    display: block;
+    cursor: zoom-in;
+    padding: 16px;
+    transition: background .15s;
+  }
+  .diagram-trigger:hover { background: #ebf8ff; }
+  .diagram-trigger img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 6px;
+  }
+
+  /* ── API Table ── */
+  .api-table-wrap { overflow-x: auto; margin: 20px 0; border-radius: 12px; border: 1px solid #e2e8f0; }
+  table { width: 100%; border-collapse: collapse; background: #fff; }
+  thead th {
+    background: #0f3460; color: #fff;
+    padding: 12px 14px; text-align: left;
+    font-size: .82rem; letter-spacing: .5px; text-transform: uppercase;
+  }
+  tbody td {
+    padding: 11px 14px; border-bottom: 1px solid #e2e8f0;
+    font-size: .88rem; color: #4a5568; vertical-align: top;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover td { background: #f7fafc; }
+  .domain-label {
+    font-weight: 700; color: #0f3460; white-space: nowrap;
+  }
+  code {
+    background: #edf2f7; padding: 2px 7px; border-radius: 5px;
+    font-family: "Cascadia Code", Consolas, monospace; font-size: .83rem; color: #c53030;
+  }
+
+  /* ── Role Tree ── */
+  .role-tree {
+    background: #fff; border: 1px solid #e2e8f0;
+    border-radius: 12px; padding: 24px 28px;
+    font-family: "Cascadia Code", Consolas, monospace;
+    font-size: .88rem; line-height: 1.9; color: #2d3748;
+  }
+  .role-tree .r-super { color: #9b2335; font-weight: 700; }
+  .role-tree .r-admin  { color: #2b6cb0; font-weight: 700; }
+  .role-tree .r-lead   { color: #276749; font-weight: 700; }
+  .role-tree .r-intern { color: #744210; }
+  .role-tree .r-hr     { color: #553c9a; font-weight: 700; }
+
+  /* ── Code Blocks ── */
+  pre {
+    background: #1a202c; color: #a8d8ea;
+    padding: 20px 22px; border-radius: 10px;
+    overflow-x: auto; font-size: .84rem; line-height: 1.65;
+    margin: 16px 0;
+  }
+  pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+
+  /* ── Checklist ── */
+  .checklist { list-style: none; padding: 0; }
+  .checklist li {
+    padding: 8px 0 8px 32px; position: relative;
+    border-bottom: 1px solid #f0f4f8; color: #4a5568;
+  }
+  .checklist li::before {
+    content: "☐"; position: absolute; left: 4px;
+    color: #3182ce; font-size: 1.1rem;
+  }
+
+  /* ── Daemon Cards ── */
+  .daemon-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0; }
+  @media (max-width: 700px) { .daemon-grid { grid-template-columns: 1fr; } }
+  .daemon-card {
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px;
+    border-top: 4px solid #3182ce;
+  }
+  .daemon-card h4 { font-size: .95rem; color: #0f3460; margin-bottom: 8px; }
+  .daemon-card p  { font-size: .86rem; color: #718096; }
+
+  /* ── Lightbox Overlay ── */
+  #lightbox-overlay {
+    display: none;
+    position: fixed; inset: 0; z-index: 9999;
+    background: rgba(10,15,30,.88);
+    justify-content: center; align-items: center;
+    padding: 20px;
+    cursor: zoom-out;
+    animation: fadeIn .2s ease;
+  }
+  #lightbox-overlay.active { display: flex; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  #lightbox-wrap {
+    max-width: 95vw; max-height: 90vh;
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    cursor: default;
+  }
+  #lightbox-img {
+    max-width: 95vw; max-height: 80vh;
+    border-radius: 10px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.7);
+    object-fit: contain;
+    animation: zoomIn .25s cubic-bezier(.22,1,.36,1);
+  }
+  @keyframes zoomIn { from { transform: scale(.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+  #lightbox-caption {
+    color: #e2e8f0; font-size: .92rem; text-align: center; opacity: .85;
+  }
+  #lightbox-close {
+    position: fixed; top: 18px; right: 22px;
+    background: rgba(255,255,255,.12); border: none;
+    color: #fff; font-size: 1.6rem; cursor: pointer;
+    width: 42px; height: 42px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .15s;
+  }
+  #lightbox-close:hover { background: rgba(255,255,255,.25); }
+
+  /* ── Print ── */
+  @media print {
+    body { background: #fff; }
+    #lightbox-overlay { display: none !important; }
+    .diagram-trigger { cursor: default; }
+    .cover { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══ Lightbox Overlay ══ -->
+<div id="lightbox-overlay" role="dialog" aria-modal="true" aria-label="Diagram preview">
+  <button id="lightbox-close" onclick="closeLightbox()" title="Close (Esc)">✕</button>
+  <div id="lightbox-wrap" onclick="event.stopPropagation()">
+    <img id="lightbox-img" src="" alt="Diagram"/>
+    <p id="lightbox-caption"></p>
+  </div>
+</div>
+
+<div class="page-wrapper">
+
+  <!-- ══ Cover ══ -->
+  <div class="cover">
+    <h1>🏗 System Architecture &amp; End-to-End Flow Analysis</h1>
+    <p>Task Tracking System · Full-Stack Technical Deep Dive · Ingage Technologies</p>
+    <div class="badges">
+      <span class="badge">React 19 + Vite</span>
+      <span class="badge">FastAPI + Python 3.13</span>
+      <span class="badge">PostgreSQL 27 Tables</span>
+      <span class="badge">CQRS Pattern</span>
+      <span class="badge">WebSocket</span>
+      <span class="badge">JWT Auth</span>
+      <span class="badge">27 CSV Mirror Files</span>
+    </div>
+  </div>
+
+  <!-- ══ Table of Contents ══ -->
+  <div class="toc">
+    <h2>Table of Contents</h2>
+    <ol>
+      <li><a href="#s1">High-Level Architectural Landscape</a></li>
+      <li><a href="#s2">File-to-File Flow (Frontend Component Tree)</a></li>
+      <li><a href="#s3">Frontend-to-Backend API Flow</a></li>
+      <li><a href="#s4">CQRS Execution Engine &amp; Service-to-Service Flow</a></li>
+      <li><a href="#s5">Database Relational Model &amp; Data Flow</a></li>
+      <li><a href="#s6">Verification &amp; Health Audit Plan</a></li>
+    </ol>
+  </div>
+
+  <!-- ══ Section 1 ══ -->
+  <section id="s1">
+    <h2 class="section-title"><span class="num">1</span> High-Level Architectural Landscape</h2>
+    <div class="card">
+      <p>The Task Tracking System is a full-stack application composed of three distinct layers: a <strong>React 19 SPA</strong> frontend, a <strong>FastAPI + Python 3.13</strong> backend, and a <strong>PostgreSQL</strong> relational database (27 tables) with an accompanying CSV mirror for reporting and seed data.</p>
+    </div>
+    <div class="callout callout-info">
+      <div class="icon">ℹ️</div>
+      <p><strong>Click any diagram below</strong> to open a full-screen popup view with high-resolution detail.</p>
+    </div>
+    <figure class="diagram-wrap">
+      <a class="diagram-trigger" onclick="openLightbox('docs/diagrams/01_high_level_architecture.png', 'Figure 1 – High-Level Architecture: Frontend → API → Backend → Database')">
+        <img src="docs/diagrams/01_high_level_architecture.png" alt="High-Level Architecture Diagram"/>
+      </a>
+      <figcaption>Figure 1 – High-Level Architecture — Click to expand</figcaption>
+    </figure>
+  </section>
+
+  <!-- ══ Section 2 ══ -->
+  <section id="s2">
+    <h2 class="section-title"><span class="num">2</span> File-to-File Flow (Frontend Component Tree)</h2>
+
+    <h3>2.1 Bootstrapping &amp; Routing Pipeline</h3>
+    <div class="card">
+      <ol>
+        <li><strong>index.html</strong> — Root HTML with <code>&lt;div id="root"&gt;</code>; loads <code>/src/main.jsx</code>.</li>
+        <li><strong>main.jsx</strong> — Mounts React 19 root; wraps app in <code>&lt;AuthProvider&gt;</code> from <code>AuthContext.jsx</code>.</li>
+        <li><strong>AuthContext.jsx</strong> — Global session state (<code>user</code>, <code>token</code>, <code>isAuthenticated</code>, <code>loading</code>). Reads from <code>localStorage</code>; verifies token freshness via <code>authApi.getMe()</code>. Exposes <code>login()</code>, <code>logout()</code>, <code>ssoLogin()</code>, <code>refreshUser()</code>.</li>
+        <li><strong>App.jsx</strong> — Hash-based router (<code>window.location.hash</code>). Auth Gate redirects to <code>LoginPage.jsx</code> when unauthenticated. Role Guard protects <code>#hr</code>. Renders <code>Navbar.jsx</code> + <code>Sidebar.jsx</code> + active page.</li>
+      </ol>
+    </div>
+
+    <h3>2.2 Component Hierarchy &amp; Data Flow Map</h3>
+    <figure class="diagram-wrap">
+      <a class="diagram-trigger" onclick="openLightbox('docs/diagrams/02_component_hierarchy.png', 'Figure 2 – Frontend Component Hierarchy & Page Data Flow')">
+        <img src="docs/diagrams/02_component_hierarchy.png" alt="Component Hierarchy Diagram"/>
+      </a>
+      <figcaption>Figure 2 – Component Hierarchy & Data Flow — Click to expand</figcaption>
+    </figure>
+
+    <div class="callout callout-success">
+      <div class="icon">✅</div>
+      <p>All pages except <code>LoginPage.jsx</code> require authentication. HR page additionally requires <code>canAccessHR</code> role check (HR or Admin only).</p>
+    </div>
+  </section>
+
+  <!-- ══ Section 3 ══ -->
+  <section id="s3">
+    <h2 class="section-title"><span class="num">3</span> Frontend-to-Backend API Flow</h2>
+    <div class="card">
+      <p>All network communication flows through <code>frontend/src/api/client.js</code> — an Axios instance with <code>baseURL = '/api'</code>. Requests carry JWT Bearer tokens injected by an outgoing interceptor. A response interceptor catches <code>401 Unauthorized</code> and forces logout.</p>
+    </div>
+
+    <h3>3.1 Modular API Routing Map</h3>
+    <div class="api-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Domain</th>
+            <th>Frontend API Object</th>
+            <th>Backend Router</th>
+            <th>CQRS Operation</th>
+            <th>Primary Responsibility</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="domain-label">Auth</td>
+            <td><code>authApi</code></td>
+            <td><code>auth.py</code></td>
+            <td>Direct Query / JWT</td>
+            <td>Login, SSO role bypass, session verify (<code>/auth/me</code>), password hashing.</td>
+          </tr>
+          <tr>
+            <td class="domain-label">Dashboard</td>
+            <td><code>dashboardApi</code></td>
+            <td><code>dashboard.py</code></td>
+            <td><code>GetDashboardStatsQuery</code></td>
+            <td>Role-scoped work count analytics, duty status, recent tasks, availability, dept workload.</td>
+          </tr>
+          <tr>
+            <td class="domain-label">Tasks</td>
+            <td><code>tasksApi</code></td>
+            <td><code>tasks.py</code></td>
+            <td><code>GetTasksQuery</code>, <code>CreateTaskCommand</code>, <code>UpdateTaskStatusCommand</code></td>
+            <td>Paginated task list, Kanban board columns, task creation, multi-assignee assignment.</td>
+          </tr>
+          <tr>
+            <td class="domain-label">Projects</td>
+            <td><code>projectsApi</code></td>
+            <td><code>projects.py</code></td>
+            <td>Direct Query</td>
+            <td>Project list, dept filtering, employee workload breakdown &amp; completion metrics.</td>
+          </tr>
+          <tr>
+            <td class="domain-label">Team</td>
+            <td><code>teamApi</code></td>
+            <td><code>team.py</code></td>
+            <td><code>GetHierarchyQuery</code>, <code>CreateUserCommand</code></td>
+            <td>Branch-isolated hierarchy, 1st predecessor/successor discovery, assignees.</td>
+          </tr>
+          <tr>
+            <td class="domain-label">Attendance</td>
+            <td><code>attendanceApi</code></td>
+            <td><code>attendance.py</code></td>
+            <td>Direct Transaction</td>
+            <td>Dynamic check-in/lunch/break/check-out punch, today status, pagination, Saturday setting.</td>
+          </tr>
+          <tr>
+            <td class="domain-label">Chat</td>
+            <td><code>chatApi</code></td>
+            <td><code>chat.py</code></td>
+            <td><code>SendMessageCommand</code>, <code>GetMessagesQuery</code></td>
+            <td>Real-time 1-on-1 and group chat conversations, member rosters, message delivery.</td>
+          </tr>
+          <tr>
+            <td class="domain-label">Notifications</td>
+            <td><code>notificationsApi</code></td>
+            <td><code>notifications.py</code></td>
+            <td><code>GetNotificationsQuery</code>, <code>MarkReadCommand</code></td>
+            <td>Notification drawer, unread count polling/WS, mark read, 90-day retention audit.</td>
+          </tr>
+          <tr>
+            <td class="domain-label">Intern Docs</td>
+            <td><code>internRecordsApi</code></td>
+            <td><code>intern_records.py</code></td>
+            <td>Direct CRUD</td>
+            <td>10th, 12th, college marksheets, address &amp; emergency contact records for interns.</td>
+          </tr>
+          <tr>
+            <td class="domain-label">Presence</td>
+            <td><code>presenceApi</code></td>
+            <td><code>presence.py</code></td>
+            <td>Background Service</td>
+            <td>On Duty / Off Duty toggle, 8-min periodic availability scan trigger.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ══ Section 4 ══ -->
+  <section id="s4">
+    <h2 class="section-title"><span class="num">4</span> CQRS Execution Engine &amp; Service-to-Service Flow</h2>
+    <div class="card">
+      <ul>
+        <li><strong>Commands</strong> (<code>backend/app/cqrs/commands/</code>): Mutate state, validate business constraints, dispatch domain notifications.</li>
+        <li><strong>Queries</strong> (<code>backend/app/cqrs/queries/</code>): Read-only operations with filtering, pagination, and branch scoping.</li>
+        <li><strong>Handlers</strong> (<code>backend/app/cqrs/handlers/</code>): Business logic fully decoupled from HTTP transport.</li>
+      </ul>
+    </div>
+
+    <h3>4.1 Task Creation Sequence (Full CQRS Flow)</h3>
+    <figure class="diagram-wrap">
+      <a class="diagram-trigger" onclick="openLightbox('docs/diagrams/03_cqrs_sequence.png', 'Figure 3 – CQRS Task Creation Sequence Diagram')">
+        <img src="docs/diagrams/03_cqrs_sequence.png" alt="CQRS Sequence Diagram"/>
+      </a>
+      <figcaption>Figure 3 – CQRS Task Creation Sequence — Click to expand</figcaption>
+    </figure>
+
+    <h3>4.2 Background Daemons &amp; Services</h3>
+    <div class="daemon-grid">
+      <div class="daemon-card">
+        <h4>⏱ 8-Minute Presence Service</h4>
+        <p><code>periodic_8min_presence_service</code> — Sleeps 480 s, evaluates active employee availability, broadcasts state changes over <code>/api/ws/presence</code>. Records run status in <code>service_execution_states</code> and <code>service_execution_logs</code>.</p>
+      </div>
+      <div class="daemon-card">
+        <h4>🗑 90-Day Notification Retention</h4>
+        <p><code>notification_cleanup_background_scheduler</code> — Checks every 60 s for Sunday 23:59 or Monday 06:00 AM trigger. Deletes read/unread notifications older than 90 days. Appends audit to <code>service_execution_logs</code>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ Section 5 ══ -->
+  <section id="s5">
+    <h2 class="section-title"><span class="num">5</span> Database Relational Model &amp; Data Flow</h2>
+    <div class="card">
+      <p>The database consists of <strong>27 relational tables</strong> in PostgreSQL (<code>task_tracking_db</code>), mirrored in <code>task_tracking_db_csv/</code> as 27 CSV files for reporting, seeding, and backup purposes.</p>
+    </div>
+
+    <h3>5.1 Entity Relationship Diagram</h3>
+    <figure class="diagram-wrap">
+      <a class="diagram-trigger" onclick="openLightbox('docs/diagrams/04_database_er.png', 'Figure 4 – Database Entity Relationship Diagram (27 Tables)')">
+        <img src="docs/diagrams/04_database_er.png" alt="Database ER Diagram"/>
+      </a>
+      <figcaption>Figure 4 – Database ER Diagram (27 Tables) — Click to expand</figcaption>
+    </figure>
+
+    <h3>5.2 Role Hierarchy &amp; Branch Scoping Rules</h3>
+    <div class="card">
+      <p>The system enforces strict reporting-tree isolation. Each role can only see data within its own branch:</p>
+      <ul style="margin-top:10px">
+        <li><strong>Super Admin</strong> — Views all Admins; drill-down into any Admin's Team Leads.</li>
+        <li><strong>Admin</strong> — Sees 1 predecessor (Super Admin) + only their own assigned Team Leads. Admin 2 cannot view Admin 1's branch.</li>
+        <li><strong>Team Lead</strong> — Sees 1 predecessor (Admin) + only their own Interns.</li>
+        <li><strong>Intern</strong> — Sees 1 predecessor (Team Lead) + peer interns. Cannot assign tasks (leaf node).</li>
+        <li><strong>HR</strong> — Independent branch; engineering interns excluded from HR task &amp; team assign flows.</li>
+      </ul>
+    </div>
+    <div class="role-tree">
+      <span class="r-super">Super Admin</span> (Elizabeth Reed – ID 3)<br>
+      &nbsp;&nbsp;├── <span class="r-admin">Admin 1</span> (Alex Morgan – ID 4)<br>
+      &nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── <span class="r-lead">Team Lead</span> (Sarah Jenkins – ID 5)<br>
+      &nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="r-intern">Intern 1</span> (Priya Sharma – ID 6)<br>
+      &nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="r-intern">Intern 2</span> (Karthik Subramanian – ID 11)<br>
+      &nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="r-intern">Intern 3</span> (Ananya Rao – ID 12)<br>
+      &nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── <span class="r-intern">Intern 4</span> (Dhanush – ID 2)<br>
+      &nbsp;&nbsp;├── <span class="r-admin">Admin 2</span> (Dhanush A – ID 1) → Isolated branch<br>
+      &nbsp;&nbsp;└── <span class="r-hr">HR</span> (Meera Raman – ID 10) → Independent branch
+    </div>
+  </section>
+
+  <!-- ══ Section 6 ══ -->
+  <section id="s6">
+    <h2 class="section-title"><span class="num">6</span> Verification &amp; Health Audit Plan</h2>
+
+    <h3>6.1 Automated Verification Commands</h3>
+    <pre><code># 1. Verify complete branch isolation and hierarchy rules across all 5 roles
+cd backend; .\venv\Scripts\python.exe test_full_verification.py
+
+# 2. Verify attendance punch state transitions and Saturday toggle
+cd backend; .\venv\Scripts\python.exe test_attendance_verify.py
+
+# 3. Verify notification 90-day retention scheduler and audit logs
+cd backend; .\venv\Scripts\python.exe test_notification_cleanup.py
+
+# 4. Verify frontend build compilation with zero errors
+npm.cmd --prefix frontend run build</code></pre>
+
+    <h3>6.2 Manual Verification Checklist</h3>
+    <div class="card">
+      <ul class="checklist">
+        <li><strong>Login Flow</strong> — Open <code>http://localhost:5173/</code>; verify "Remember my workspace" is <em>unchecked</em> by default.</li>
+        <li><strong>Tasks Page Toolbar</strong> — Confirm Total Assigned / Received pill renders left of "All Tasks" for all roles.</li>
+        <li><strong>Dashboard Task Count Analysis</strong> — Verify Super Admin shows 4 tasks, Team Lead shows 13 tasks, Intern Priya shows 11 tasks.</li>
+        <li><strong>Attendance Punch Button</strong> — Confirm dynamic state transitions: Check-in → Lunch → Break → Check-out.</li>
+        <li><strong>Branch Isolation</strong> — Logged in as Admin 2 (dhanusha130703@gmail.com), confirm cannot see Admin 1's Team Leads or Interns.</li>
+        <li><strong>Multi-assignee Tasks</strong> — Create a task with 3 assignees; confirm assignee count badge appears in task title column; clicking badge shows all 3 names.</li>
+        <li><strong>WebSocket Notifications</strong> — Assign a task; confirm real-time notification appears in the target user's notification drawer without refresh.</li>
+        <li><strong>All Tasks Toggle</strong> — When pressed, tasks show distinct records in descending Task ID order. When unpressed, shows individual assignee rows (repeating Task IDs are OK).</li>
+      </ul>
+    </div>
+
+    <div class="callout callout-warning">
+      <div class="icon">⚠️</div>
+      <p><strong>DB Access Policy:</strong> The <code>task_tracking_db</code> PostgreSQL database is <em>read-only</em> for architecture audit purposes. All seed credentials: <code>admin123</code> for all 9 users.</p>
+    </div>
+  </section>
+
+</div><!-- /page-wrapper -->
+
+<!-- ══ Lightbox JavaScript ══ -->
+<script>
+  function openLightbox(src, caption) {
+    const overlay = document.getElementById('lightbox-overlay');
+    const img     = document.getElementById('lightbox-img');
+    const cap     = document.getElementById('lightbox-caption');
+    img.src     = src;
+    img.alt     = caption;
+    cap.textContent = caption;
+    overlay.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeLightbox() {
+    document.getElementById('lightbox-overlay').classList.remove('active');
+    document.getElementById('lightbox-img').src = '';
+    document.body.style.overflow = '';
+  }
+
+  // Close on overlay background click
+  document.getElementById('lightbox-overlay').addEventListener('click', closeLightbox);
+
+  // Close on Esc key
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeLightbox();
+  });
+</script>
+</body>
+</html>
