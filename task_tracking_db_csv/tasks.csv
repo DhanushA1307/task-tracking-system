@@ -21,3 +21,4 @@ id,project_id,title,description,status,priority,assignment_type,assigned_by_id,s
 16,5,Implement the Backend API,Write the Boilerplate of the API Communication,Completed,Medium,individual,3,2026-11-03,2026-11-07,8.00,100,,,2026-11-06 11:02:31.304143+05:30,2026-11-06 14:31:27.404119+05:30
 18,1,API Test Task With From Date,Validating start_date persistence,Completed,Medium,individual,4,2026-11-06,2026-11-15,4.00,100,,,2026-11-06 14:41:51.620693+05:30,2026-11-06 14:48:53.585645+05:30
 19,1,E2E SSE Realtime Notification Test Task,Verify that task assignment triggers real-time SSE push without polling,Completed,High,individual,4,,,0.00,100,,,2026-11-10 10:08:51.153328+05:30,2026-11-13 13:13:16.896688+05:30
+23,2,Check the Workflow Process,,Completed,Low,individual,4,2026-11-20,2026-11-21,8.00,100,,,2026-11-20 18:00:47.065710+05:30,2026-11-20 18:32:42.888368+05:30
