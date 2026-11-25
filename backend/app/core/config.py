@@ -2,9 +2,9 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-# Load backend/.env automatically in local development
+# Load backend/.env automatically in local development (ignored by Git, not present on Vercel)
 _BACKEND_DIR = Path(__file__).resolve().parents[2]
-load_dotenv(_BACKEND_DIR / ".env")
+load_dotenv(_BACKEND_DIR / ".env", override=True)
 
 
 class Settings:
