@@ -39,8 +39,8 @@ export const SettingsPage = () => {
   const [successorAccountAvailable, setSuccessorAccountAvailable] = useState('NA');
   const [managerSuccessorAvailable, setManagerSuccessorAvailable] = useState('NA');
 
-  // Rule: Except the team lead and intern rest of the roles should need employee count / successor account
-  const isExcludedRole = userRole === 'intern' || userRole === 'team_lead' || userRole === 'team_leader' || userRole === 'teamleader';
+  // Rule: Except team lead, employee, and intern, rest of the roles show employee count / successor account
+  const isExcludedRole = userRole === 'intern' || userRole === 'employee' || userRole === 'team_lead' || userRole === 'team_leader' || userRole === 'teamleader';
   const canShowEmployeeCount = !isExcludedRole;
 
   // UI state

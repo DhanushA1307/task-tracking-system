@@ -142,6 +142,8 @@ export const Navbar = ({ onNavigate, currentTab }) => {
         return { label: 'HR Manager', color: 'bg-emerald-100 text-emerald-800 border-emerald-200', icon: Shield };
       case 'team_lead':
         return { label: 'Team Lead', color: 'bg-amber-100 text-amber-700 border-amber-200', icon: Users };
+      case 'employee':
+        return { label: 'Employee', color: 'bg-sky-100 text-sky-800 border-sky-200', icon: Users };
       case 'intern':
       default:
         return { label: 'Intern', color: 'bg-brand-100 text-brand-700 border-brand-200', icon: GraduationCap };
@@ -231,8 +233,8 @@ export const Navbar = ({ onNavigate, currentTab }) => {
                   </span>
                   <span className="text-[10px] text-slate-400 font-mono">{user?.employee_number}</span>
                 </div>
-                {/* Rule: Except Intern and Team Leader, show employee count and successor account availability */}
-                {user && user.role !== 'intern' && user.role !== 'team_lead' && user.role !== 'team_leader' && (
+                {/* Rule: Except Intern, Employee, and Team Leader, show employee count and successor account availability */}
+                {user && user.role !== 'intern' && user.role !== 'employee' && user.role !== 'team_lead' && user.role !== 'team_leader' && (
                   <div className="mt-2.5 pt-2 border-t border-slate-100 text-[11px] space-y-1">
                     <div className="flex justify-between text-slate-500">
                       <span>Employee Count:</span>

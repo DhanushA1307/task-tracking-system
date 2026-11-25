@@ -61,6 +61,7 @@ export const teamApi = {
   getHierarchy: () => api.get('/team/hierarchy'),
   getAssignees: () => api.get('/team/assignees'),
   createUser: (data) => api.post('/team/users', data),
+  createUsersBulk: (users) => api.post('/team/users/bulk', { users }),
   resetUserPassword: (userId, new_password, must_change_password = true) =>
     api.post(`/team/users/${userId}/reset-password`, { new_password, must_change_password }),
 };
@@ -112,6 +113,16 @@ export const attendanceApi = {
   getMyAttendance: (page = 1, page_size = 10) => api.get('/attendance/my', { params: { page, page_size } }),
   getTeamAttendance: (date_str) => api.get('/attendance/team', { params: { date_str: date_str || undefined } }),
   toggleSaturday: (is_working) => api.post('/attendance/saturday-toggle', { is_working }),
+};
+
+export const leaveApi = {
+  getPolicies: () => api.get('/leaves/policies'),
+  updatePolicies: (policies) => api.put('/leaves/policies', { policies }),
+  apply: (data) => api.post('/leaves/apply', data),
+  getMyLeaves: () => api.get('/leaves/my'),
+  getIncoming: () => api.get('/leaves/incoming'),
+  decide: (leaveId, decision, remarks = '') =>
+    api.patch(`/leaves/${leaveId}/decision`, { decision, remarks }),
 };
 
 export default api;

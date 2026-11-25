@@ -936,6 +936,8 @@ export const TasksPage = () => {
         return { label: 'Human Resource', color: 'bg-emerald-100 text-emerald-800 border-emerald-200' };
       case 'team_lead':
         return { label: 'Team Lead', color: 'bg-amber-100 text-amber-800 border-amber-200' };
+      case 'employee':
+        return { label: 'Employee', color: 'bg-sky-100 text-sky-800 border-sky-200' };
       case 'intern':
       default:
         return { label: 'Intern', color: 'bg-brand-50 text-brand-700 border-brand-200' };

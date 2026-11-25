@@ -199,6 +199,7 @@ export const TaskModal = ({ isOpen, onClose, onTaskCreated }) => {
       case 'super_admin': return 'bg-purple-100 text-purple-800 border-purple-200';
       case 'admin': return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'team_lead': return 'bg-amber-100 text-amber-800 border-amber-200';
+      case 'employee': return 'bg-sky-100 text-sky-800 border-sky-200';
       case 'intern':
       default: return 'bg-brand-100 text-brand-800 border-brand-200';
     }

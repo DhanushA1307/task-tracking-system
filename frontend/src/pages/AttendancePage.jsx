@@ -173,6 +173,7 @@ export const AttendancePage = () => {
     if (r.includes('super_admin') || r.includes('superadmin')) return 'bg-purple-100 text-purple-800 border-purple-200';
     if (r.includes('admin')) return 'bg-blue-100 text-blue-800 border-blue-200';
     if (r.includes('team_lead')) return 'bg-amber-100 text-amber-800 border-amber-200';
+    if (r === 'employee') return 'bg-sky-100 text-sky-800 border-sky-200';
     if (r.includes('hr')) return 'bg-emerald-100 text-emerald-800 border-emerald-200';
     return 'bg-brand-100 text-brand-800 border-brand-200';
   };

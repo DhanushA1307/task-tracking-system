@@ -38,6 +38,13 @@ class CreateUserCommand:
 
 
 @dataclass
+class BulkCreateUsersCommand:
+    creator_id: int
+    creator_role: str
+    users: List[CreateUserCommand]
+
+
+@dataclass
 class ChangeOwnPasswordCommand:
     user_id: int
     current_password: str

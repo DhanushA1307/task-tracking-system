@@ -36,6 +36,8 @@ def _format_user_role(role: Optional[str]) -> str:
         return "Admin"
     if role_lower == "team_lead":
         return "Team Lead"
+    if role_lower == "employee":
+        return "Employee"
     if role_lower == "intern":
         return "Intern"
     if role_lower in ["hr", "human_resource_manager"]:

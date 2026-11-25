@@ -6,10 +6,13 @@ from app.core.security import get_current_user
 from app.models.domain import User
 from app.models.schemas import (
     HierarchyResponse, CreateUserRequest, CreatedUserResponse,
+    BulkCreateUsersRequest, BulkCreateUsersResponse,
     ResetUserPasswordRequest, PasswordUpdateResponse,
 )
 from app.cqrs.queries.team_queries import GetHierarchyQuery
-from app.cqrs.commands.user_commands import CreateUserCommand, ResetUserPasswordCommand
+from app.cqrs.commands.user_commands import (
+    CreateUserCommand, BulkCreateUsersCommand, ResetUserPasswordCommand,
+)
 from app.cqrs.handlers.query_handlers import QueryHandlers
 from app.cqrs.handlers.command_handlers import CommandHandlers
 
@@ -37,6 +40,38 @@ def create_team_user(
     )
     result = CommandHandlers.handle_create_user(cmd, db)
     return result
+
+
+@router.post("/users/bulk", response_model=BulkCreateUsersResponse, status_code=status.HTTP_201_CREATED)
+def create_team_users_bulk(
+    payload: BulkCreateUsersRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Create multiple team/employee records atomically under the caller's branch."""
+    user_cmds = [
+        CreateUserCommand(
+            creator_id=current_user.id,
+            creator_role=current_user.role,
+            full_name=item.full_name,
+            email=item.email,
+            password=item.password,
+            role=item.role,
+            designation_name=item.designation_name,
+            designation_number=item.designation_number,
+            department=item.department,
+            reporting_manager_id=item.reporting_manager_id,
+            mobile=item.mobile,
+            skills=item.skills,
+        )
+        for item in payload.users
+    ]
+    cmd = BulkCreateUsersCommand(
+        creator_id=current_user.id,
+        creator_role=current_user.role,
+        users=user_cmds,
+    )
+    return CommandHandlers.handle_bulk_create_users(cmd, db)
 
 
 @router.post("/users/{user_id}/reset-password", response_model=PasswordUpdateResponse)
@@ -80,13 +115,14 @@ def get_assignable_members(
     admins = [u for u in all_users if u.role in ["admin", "Admin"]]
     hrs = [u for u in all_users if u.role in ["hr", "human_resource_manager"] or (u.profile and "human resource" in (u.profile.designation or "").lower())]
     team_leads = [u for u in all_users if u.role in ["team_lead", "Team Lead"]]
+    employees = [u for u in all_users if (u.role or "").lower().replace(" ", "_") == "employee"]
     interns = [u for u in all_users if u.role in ["intern", "Intern"]]
 
     successors = []
     peers_and_self = []
 
     if user_role_norm in ["super_admin", "superadmin"]:
-        # Rule 1 & Rule 4: Successors are Admins, HRs, Team Leads, Interns
+        # Rule 1 & Rule 4: Successors are Admins, HRs, Team Leads, Employees, Interns
         for a in admins:
             item = QueryHandlers._member_to_item(a, db)
             item["is_successor"] = True
@@ -99,6 +135,10 @@ def get_assignable_members(
             item = QueryHandlers._member_to_item(tl, db)
             item["is_successor"] = True
             successors.append(item)
+        for emp in employees:
+            item = QueryHandlers._member_to_item(emp, db)
+            item["is_successor"] = True
+            successors.append(item)
         for i in interns:
             item = QueryHandlers._member_to_item(i, db)
             item["is_successor"] = True
@@ -108,13 +148,16 @@ def get_assignable_members(
         peers_and_self.append(self_item)
 
     elif user_role_norm == "admin":
-        # Rule 2: Admin -> Team_Lead -> Intern (Scoped strictly to this Admin's own flow)
-        # 2nd Admin must NOT see 1st Admin's flow
+        # Rule 2: Admin -> Team_Lead -> Employee / Intern (Scoped strictly to this Admin's own flow)
         my_team_leads = [
             tl for tl in team_leads 
             if tl.profile and tl.profile.reporting_manager_id == current_user.id
         ]
         my_tl_ids = [tl.id for tl in my_team_leads]
+        my_employees = [
+            emp for emp in employees
+            if emp.profile and (emp.profile.reporting_manager_id in my_tl_ids or emp.profile.reporting_manager_id == current_user.id)
+        ]
         my_interns = [
             i for i in interns 
             if i.profile and (i.profile.reporting_manager_id in my_tl_ids or i.profile.reporting_manager_id == current_user.id)
@@ -122,6 +165,10 @@ def get_assignable_members(
 
         for tl in my_team_leads:
             item = QueryHandlers._member_to_item(tl, db)
+            item["is_successor"] = True
+            successors.append(item)
+        for emp in my_employees:
+            item = QueryHandlers._member_to_item(emp, db)
             item["is_successor"] = True
             successors.append(item)
         for i in my_interns:
@@ -166,9 +213,31 @@ def get_assignable_members(
                 peers_and_self.append(item)
 
     elif user_role_norm == "team_lead":
-        # Rule 3: Successors are ONLY Interns reporting directly to this Team Lead
+        # Successors are Interns and Employees reporting directly to this Team Lead
+        my_employees = [
+            emp for emp in employees
+            if emp.profile and emp.profile.reporting_manager_id == current_user.id
+        ]
         my_interns = [
             i for i in interns 
+            if i.profile and i.profile.reporting_manager_id == current_user.id
+        ]
+        for emp in my_employees:
+            item = QueryHandlers._member_to_item(emp, db)
+            item["is_successor"] = True
+            successors.append(item)
+        for i in my_interns:
+            item = QueryHandlers._member_to_item(i, db)
+            item["is_successor"] = True
+            successors.append(item)
+        self_item = QueryHandlers._member_to_item(current_user, db)
+        self_item["is_successor"] = False
+        peers_and_self.append(self_item)
+
+    elif user_role_norm == "employee":
+        # Employee: direct subordinates (if any) + self + peer employees
+        my_interns = [
+            i for i in interns
             if i.profile and i.profile.reporting_manager_id == current_user.id
         ]
         for i in my_interns:
@@ -178,6 +247,12 @@ def get_assignable_members(
         self_item = QueryHandlers._member_to_item(current_user, db)
         self_item["is_successor"] = False
         peers_and_self.append(self_item)
+        my_mgr = current_user.profile.reporting_manager_id if current_user.profile else None
+        for emp in employees:
+            if emp.id != current_user.id and (not my_mgr or (emp.profile and emp.profile.reporting_manager_id == my_mgr)):
+                item = QueryHandlers._member_to_item(emp, db)
+                item["is_successor"] = False
+                peers_and_self.append(item)
 
     else: # intern
         # For intern: self + peer interns

@@ -54,10 +54,10 @@ class QueryHandlers:
             descendants = QueryHandlers.get_descendant_user_ids(user_id, db)
             return list(set([user_id] + descendants))
 
-        if role_norm == "team_lead":
-            # Successors: Interns reporting to this TL
+        if role_norm in ["team_lead", "employee"]:
+            # Successors: direct reports (if any) + self
             descendants = QueryHandlers.get_descendant_user_ids(user_id, db)
-            if not descendants:
+            if not descendants and role_norm == "team_lead":
                 descendants = [
                     prof.user_id for prof in db.query(UserProfile).filter(UserProfile.reporting_manager_id == user_id).all()
                 ]
@@ -233,6 +233,7 @@ class QueryHandlers:
         admins = [u for u in all_users if u.role in ["admin", "Admin"]]
         hrs = [u for u in all_users if u.role in ["hr", "human_resource_manager"] or (u.profile and "human resource" in (u.profile.designation or "").lower())]
         team_leads = [u for u in all_users if u.role in ["team_lead", "Team Lead"]]
+        employees = [u for u in all_users if (u.role or "").lower().replace(" ", "_") == "employee"]
 
         # General engineering interns under Team Lead
         engineering_interns = [
@@ -256,25 +257,28 @@ class QueryHandlers:
         sa_user = db.query(User).filter(User.role.in_(["super_admin", "superadmin"])).first()
 
         if role_norm in ["super_admin", "superadmin"]:
-            # Rule 1 & Rule 4: Super_Admin -> Admin -> Team_Lead -> Intern and Super_Admin -> HR
-            target_users = [u for u in (admins + hrs + team_leads + engineering_interns + hr_related_roles) if u.id != query.user_id]
-            hierarchy_flow_str = "super_admin -> admin -> team_lead -> intern (and super_admin -> hr)"
+            # Rule 1 & Rule 4: Super_Admin -> Admin -> Team_Lead -> Employee / Intern and Super_Admin -> HR
+            target_users = [u for u in (admins + hrs + team_leads + employees + engineering_interns + hr_related_roles) if u.id != query.user_id]
+            hierarchy_flow_str = "super_admin -> admin -> team_lead -> employee / intern (and super_admin -> hr)"
             predecessor_name_str = "None (Top Level)"
 
         elif role_norm == "admin":
-            # Rule 2: Admin -> Team_Lead -> Intern (Scoped strictly to this Admin's own flow)
-            # 2nd Admin must NOT see 1st Admin's flow
+            # Rule 2: Admin -> Team_Lead -> Employee / Intern (Scoped strictly to this Admin's own flow)
             my_team_leads = [
                 tl for tl in team_leads 
                 if tl.profile and tl.profile.reporting_manager_id == query.user_id
             ]
             my_tl_ids = [tl.id for tl in my_team_leads]
+            my_employees = [
+                emp for emp in employees
+                if emp.profile and (emp.profile.reporting_manager_id in my_tl_ids or emp.profile.reporting_manager_id == query.user_id)
+            ]
             my_interns = [
                 i for i in engineering_interns
                 if i.profile and (i.profile.reporting_manager_id in my_tl_ids or i.profile.reporting_manager_id == query.user_id)
             ]
-            target_users = [u for u in (my_team_leads + my_interns) if u.id != query.user_id]
-            hierarchy_flow_str = "admin -> team_lead -> intern (scoped branch)"
+            target_users = [u for u in (my_team_leads + my_employees + my_interns) if u.id != query.user_id]
+            hierarchy_flow_str = "admin -> team_lead -> employee / intern (scoped branch)"
             predecessor_name_str = sa_user.full_name if sa_user else "Super Admin"
 
         elif is_hr_user:
@@ -288,18 +292,39 @@ class QueryHandlers:
                 hierarchy_flow_str = "super_admin -> hr"
 
         elif role_norm in ["team_lead", "team_leader", "teamleader"]:
-            # Rule 3: Team_Lead -> Intern
+            # Rule 3: Team_Lead -> Employee / Intern
+            tl_employees = [
+                u for u in employees
+                if (u.profile and u.profile.reporting_manager_id == query.user_id)
+            ]
             tl_interns = [
                 u for u in engineering_interns 
                 if (u.profile and u.profile.reporting_manager_id == query.user_id)
             ]
-            target_users = tl_interns
-            hierarchy_flow_str = "team_lead -> intern"
+            target_users = tl_employees + tl_interns
+            hierarchy_flow_str = "team_lead -> employee / intern"
             mgr_id = curr_user.profile.reporting_manager_id if curr_user and curr_user.profile else None
             adm_user = db.query(User).filter(User.id == mgr_id).first() if mgr_id else None
             if not adm_user:
                 adm_user = db.query(User).filter(User.role.in_(["admin", "Admin"])).first()
             predecessor_name_str = adm_user.full_name if adm_user else "Admin (Director)"
+
+        elif role_norm == "employee":
+            mgr_id = curr_user.profile.reporting_manager_id if curr_user and curr_user.profile else None
+            mgr_user = db.query(User).filter(User.id == mgr_id).first() if mgr_id else None
+            if not mgr_user:
+                mgr_user = db.query(User).filter(User.role.in_(["admin", "Admin"])).first()
+            predecessor_name_str = mgr_user.full_name if mgr_user else "Manager"
+            peer_employees = [
+                u for u in employees
+                if u.id != query.user_id and (not mgr_id or (u.profile and u.profile.reporting_manager_id == mgr_id))
+            ]
+            sub_interns = [
+                u for u in engineering_interns
+                if u.profile and u.profile.reporting_manager_id == query.user_id
+            ]
+            target_users = sub_interns + peer_employees
+            hierarchy_flow_str = "admin / team_lead -> employee"
 
         else: # intern
             # Intern sees peer interns reporting to the same Team Lead
@@ -522,6 +547,7 @@ class QueryHandlers:
         admins = [u for u in all_users if u.role in ["admin", "Admin"]]
         hrs = [u for u in all_users if u.role in ["hr", "human_resource_manager"] or (u.profile and "human resource" in (u.profile.designation or "").lower())]
         team_leads = [u for u in all_users if u.role in ["team_lead", "Team Lead"]]
+        employees = [u for u in all_users if (u.role or "").lower().replace(" ", "_") == "employee"]
         interns = [u for u in all_users if u.role in ["intern", "Intern"]]
 
         predecessors: List[Dict[str, Any]] = []
@@ -532,7 +558,30 @@ class QueryHandlers:
         user_role_norm = current_user.role.lower().replace(" ", "_") if current_user else query.role.lower().replace(" ", "_")
         is_hr_user = user_role_norm in ["hr", "human_resource_manager"] or (current_user and current_user.profile and "human resource" in (current_user.profile.designation or "").lower())
 
-        if user_role_norm == "intern":
+        if user_role_norm == "employee":
+            # Employee Designation: 1st predecessor is direct manager (Admin / Team Lead / Super Admin)
+            manager_id = current_user.profile.reporting_manager_id if current_user and current_user.profile else None
+            direct_manager = db.query(User).filter(User.id == manager_id).first() if manager_id else (admins[0] if admins else (team_leads[0] if team_leads else None))
+            if direct_manager:
+                predecessors.append(QueryHandlers._member_to_item(direct_manager, db))
+
+            assigned_subordinates = [i for i in interns if i.profile and i.profile.reporting_manager_id == current_user.id]
+            successors = [QueryHandlers._member_to_item(i, db) for i in assigned_subordinates]
+
+            peers = [
+                QueryHandlers._member_to_item(emp, db) for emp in employees
+                if emp.id != current_user.id and (not manager_id or (emp.profile and emp.profile.reporting_manager_id == manager_id))
+            ]
+
+            top = super_admins[0] if super_admins else None
+            if top and (not direct_manager or top.id != direct_manager.id):
+                hierarchy_chain.append(QueryHandlers._member_to_item(top, db))
+            if direct_manager:
+                hierarchy_chain.append(QueryHandlers._member_to_item(direct_manager, db))
+            if current_user:
+                hierarchy_chain.append(QueryHandlers._member_to_item(current_user, db))
+
+        elif user_role_norm == "intern":
             # For Intern Designation: Showing their Higher Designation position Person
             # 1. Direct Reporting Manager (Team Lead)
             manager_id = current_user.profile.reporting_manager_id if current_user and current_user.profile else None
@@ -593,9 +642,10 @@ class QueryHandlers:
             if direct_admin:
                 predecessors.append(QueryHandlers._member_to_item(direct_admin, db))
 
-            # Successors: ONLY Interns reporting to this specific Team Lead
+            # Successors: Employees and Interns reporting directly to this specific Team Lead
+            assigned_employees = [emp for emp in employees if emp.profile and emp.profile.reporting_manager_id == current_user.id]
             assigned_interns = [i for i in interns if i.profile and i.profile.reporting_manager_id == current_user.id]
-            successors = [QueryHandlers._member_to_item(i, db) for i in assigned_interns]
+            successors = [QueryHandlers._member_to_item(m, db) for m in (assigned_employees + assigned_interns)]
 
             # Peers: other Team Leads reporting to the same Admin
             peers = [
@@ -605,27 +655,30 @@ class QueryHandlers:
 
             top = super_admins[0] if super_admins else None
             adm = direct_admin or (admins[0] if admins else None)
-            first_intern = assigned_interns[0] if assigned_interns else None
+            first_sub = (assigned_employees + assigned_interns)[0] if (assigned_employees or assigned_interns) else None
             if top: hierarchy_chain.append(QueryHandlers._member_to_item(top, db))
             if adm: hierarchy_chain.append(QueryHandlers._member_to_item(adm, db))
             if current_user: hierarchy_chain.append(QueryHandlers._member_to_item(current_user, db))
-            if first_intern: hierarchy_chain.append(QueryHandlers._member_to_item(first_intern, db))
+            if first_sub: hierarchy_chain.append(QueryHandlers._member_to_item(first_sub, db))
 
         elif user_role_norm == "admin":
-            # Rule 2: Admin -> Team_Lead -> Intern
+            # Rule 2: Admin -> Team_Lead -> Employee / Intern
             # 1 Predecessor: Super Admin (manager of this Admin)
             manager_id = current_user.profile.reporting_manager_id if current_user and current_user.profile else None
             direct_sa = db.query(User).filter(User.id == manager_id).first() if manager_id else (super_admins[0] if super_admins else None)
             if direct_sa:
                 predecessors.append(QueryHandlers._member_to_item(direct_sa, db))
 
-            # Successors: ONLY Team Leads and Interns under THIS Admin's branch
-            # The 2nd Admin must NOT see the 1st Admin's flow
+            # Successors: ONLY Team Leads, Employees, and Interns under THIS Admin's branch
             my_team_leads = [
                 tl for tl in team_leads 
                 if tl.profile and tl.profile.reporting_manager_id == current_user.id
             ]
             my_tl_ids = [tl.id for tl in my_team_leads]
+            my_employees = [
+                emp for emp in employees
+                if emp.profile and (emp.profile.reporting_manager_id in my_tl_ids or emp.profile.reporting_manager_id == current_user.id)
+            ]
             my_interns = [
                 i for i in interns 
                 if i.profile and (i.profile.reporting_manager_id in my_tl_ids or i.profile.reporting_manager_id == current_user.id)
@@ -633,6 +686,8 @@ class QueryHandlers:
 
             for tl in my_team_leads:
                 successors.append(QueryHandlers._member_to_item(tl, db))
+            for emp in my_employees:
+                successors.append(QueryHandlers._member_to_item(emp, db))
             for i in my_interns:
                 successors.append(QueryHandlers._member_to_item(i, db))
 
@@ -641,24 +696,24 @@ class QueryHandlers:
 
             top = direct_sa or (super_admins[0] if super_admins else None)
             tl = my_team_leads[0] if my_team_leads else None
-            first_intern = my_interns[0] if my_interns else None
+            first_sub = (my_employees + my_interns)[0] if (my_employees or my_interns) else None
             if top: hierarchy_chain.append(QueryHandlers._member_to_item(top, db))
             if current_user: hierarchy_chain.append(QueryHandlers._member_to_item(current_user, db))
             if tl: hierarchy_chain.append(QueryHandlers._member_to_item(tl, db))
-            if first_intern: hierarchy_chain.append(QueryHandlers._member_to_item(first_intern, db))
+            if first_sub: hierarchy_chain.append(QueryHandlers._member_to_item(first_sub, db))
 
         else: # super_admin
-            # Rule 1: Super_Admin -> Admin -> Team_Lead -> Intern
+            # Rule 1: Super_Admin -> Admin -> Team_Lead -> Employee / Intern
             # Rule 4: Super_Admin -> HR
-            # Predecessors: None
             predecessors = []
-            # Successors: All Admins, HR, Team Leads, and Interns (with reporting_manager_id preserved)
             for a in admins:
                 successors.append(QueryHandlers._member_to_item(a, db))
             for h in hrs:
                 successors.append(QueryHandlers._member_to_item(h, db))
             for tl in team_leads:
                 successors.append(QueryHandlers._member_to_item(tl, db))
+            for emp in employees:
+                successors.append(QueryHandlers._member_to_item(emp, db))
             for i in interns:
                 successors.append(QueryHandlers._member_to_item(i, db))
 
@@ -726,7 +781,7 @@ class QueryHandlers:
                 rep_role = prof.reporting_manager.profile.designation if prof.reporting_manager.profile else "Manager"
 
         user_role_norm = user.role.lower().replace(" ", "_")
-        is_manager_role = user_role_norm not in ["intern", "team_lead", "team_leader", "teamleader"]
+        is_manager_role = user_role_norm not in ["intern", "employee", "team_lead", "team_leader", "teamleader"]
         
         employee_count_str = None
         successor_account_avail_str = None
@@ -738,11 +793,11 @@ class QueryHandlers:
 
         if is_manager_role or user_role_norm in ["team_lead", "team_leader", "teamleader"]:
             if user_role_norm in ["super_admin", "superadmin"]:
-                # Rule 1 & Rule 4: Super Admin manages Admins, HRs, Team Leads, Interns
-                succs = [u for u in all_users if u.id != user.id and u.role in ["admin", "hr", "team_lead", "intern", "hr_intern"]]
+                # Rule 1 & Rule 4: Super Admin manages Admins, HRs, Team Leads, Employees, Interns
+                succs = [u for u in all_users if u.id != user.id and u.role in ["admin", "hr", "team_lead", "employee", "intern", "hr_intern"]]
             elif user_role_norm == "admin":
-                # Rule 2: Admin -> Team_Lead -> Intern (and can oversee intern records via HR features)
-                succs = [u for u in all_users if u.id != user.id and u.role in ["team_lead", "intern", "hr", "hr_intern"]]
+                # Rule 2: Admin -> Team_Lead -> Employee / Intern
+                succs = [u for u in all_users if u.id != user.id and u.role in ["team_lead", "employee", "intern", "hr", "hr_intern"]]
             elif is_hr_profile:
                 # Rule 4: (super_admin -> hr) or (super_admin -> hr -> hr_intern) or (super_admin -> any_roles_relate_with_hr)
                 # Successors align ONLY with HR-related roles (NOT with all tasks)
@@ -755,10 +810,10 @@ class QueryHandlers:
                     )
                 ]
             elif user_role_norm in ["team_lead", "team_leader", "teamleader"]:
-                # Rule 3: Team_Lead -> Intern
-                succs = [u for u in all_users if (u.role or "").lower() == "intern"]
+                # Rule 3: Team_Lead -> Employee / Intern
+                succs = [u for u in all_users if (u.role or "").lower() in ["intern", "employee"] and (u.profile and u.profile.reporting_manager_id == user.id)]
             else:
-                succs = [u for u in all_users if u.id != user.id and u.role in ["intern", "team_lead"]]
+                succs = [u for u in all_users if u.id != user.id and u.role in ["intern", "employee", "team_lead"]]
 
             if succs:
                 employee_count_str = str(len(succs))
@@ -776,6 +831,12 @@ class QueryHandlers:
             manager_user = prof.reporting_manager
             rep_name = manager_user.full_name or manager_user.email
             rep_role = manager_user.profile.designation if (manager_user.profile and manager_user.profile.designation) else manager_user.role.replace("_", " ").title()
+        elif user_role_norm == "employee":
+            adm = db.query(User).filter(User.role.in_(["admin", "Admin"])).first()
+            if adm:
+                manager_user = adm
+                rep_name = adm.full_name or adm.email
+                rep_role = adm.profile.designation if (adm.profile and adm.profile.designation) else "Admin"
         elif user_role_norm == "intern":
             # Rule 3: Team_Lead -> Intern
             tl = db.query(User).filter(User.role == "team_lead").first()

@@ -169,7 +169,7 @@ class CreateUserRequest(BaseModel):
     full_name: str
     email: EmailStr
     password: str = Field(..., min_length=6)
-    role: str # successor role (admin, team_lead, intern)
+    role: str # successor role (admin, hr, team_lead, employee, intern)
     designation_name: Optional[str] = None
     designation_number: Optional[str] = None
     department: Optional[str] = "Edutech"
@@ -187,6 +187,14 @@ class CreatedUserResponse(BaseModel):
     department: str
     current_status: str = "On Duty"
     message: Optional[str] = None
+
+class BulkCreateUsersRequest(BaseModel):
+    users: List[CreateUserRequest] = Field(..., min_length=1, max_length=50)
+
+class BulkCreateUsersResponse(BaseModel):
+    created_count: int
+    users: List[CreatedUserResponse]
+    message: str
 
 class TeamMemberItem(BaseModel):
     id: int

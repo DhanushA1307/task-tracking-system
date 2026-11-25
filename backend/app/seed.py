@@ -108,7 +108,8 @@ def seed_database():
         # Also support dhanusha130703@gmail.com as admin if present
         existing_admin2 = db.query(User).filter(User.email == "dhanusha130703@gmail.com").first()
         if existing_admin2:
-            existing_admin2.password_hash = hashed_pw
+            if not existing_admin2.password_hash:
+                existing_admin2.password_hash = hashed_pw
             existing_admin2.role = "admin"
             existing_admin2.full_name = existing_admin2.full_name or "Dhanush Admin"
             existing_admin2.current_status = "On Duty"
@@ -203,7 +204,8 @@ def seed_database():
             db.add(intern_user)
             db.flush()
         else:
-            intern_user.password_hash = hashed_pw
+            if not intern_user.password_hash:
+                intern_user.password_hash = hashed_pw
             intern_user.full_name = intern_user.full_name or "Dhanush A"
             intern_user.current_status = "On Duty"
 
@@ -273,7 +275,8 @@ def seed_database():
             )
             db.add(p_prof)
         else:
-            peer_intern.password_hash = hashed_pw
+            if not peer_intern.password_hash:
+                peer_intern.password_hash = hashed_pw
             peer_intern.role = "intern"
 
         # Intern (Karthik Subramanian)
@@ -307,7 +310,8 @@ def seed_database():
             )
             db.add(k_prof)
         else:
-            karthik_intern.password_hash = hashed_pw
+            if not karthik_intern.password_hash:
+                karthik_intern.password_hash = hashed_pw
             karthik_intern.role = "intern"
 
         # Intern (Ananya Rao)
@@ -341,7 +345,8 @@ def seed_database():
             )
             db.add(a_prof)
         else:
-            ananya_intern.password_hash = hashed_pw
+            if not ananya_intern.password_hash:
+                ananya_intern.password_hash = hashed_pw
             ananya_intern.role = "intern"
 
         # Human Resource Manager (HR)
@@ -359,7 +364,8 @@ def seed_database():
             db.add(hr_user)
             db.flush()
         else:
-            hr_user.password_hash = hashed_pw
+            if not hr_user.password_hash:
+                hr_user.password_hash = hashed_pw
             hr_user.role = "hr"
             hr_user.full_name = hr_user.full_name or "Meera Raman"
             hr_user.current_status = "On Duty"

@@ -8,7 +8,7 @@ from app.models.domain import User, UserProfile, Task, TaskAssignment, Notificat
 from app.core.security import verify_password, create_access_token, get_password_hash
 from app.cqrs.commands.user_commands import (
     LoginCommand, SSOLoginCommand, UpdateUserProfileCommand, CreateUserCommand,
-    ChangeOwnPasswordCommand, ResetUserPasswordCommand,
+    BulkCreateUsersCommand, ChangeOwnPasswordCommand, ResetUserPasswordCommand,
 )
 from app.cqrs.commands.task_commands import (
     CreateTaskCommand, UpdateTaskStatusCommand, UpdateTaskDetailsCommand, DeleteTaskCommand
@@ -471,9 +471,10 @@ class CommandHandlers:
         return NotificationCleanupService.set_service_enabled(db=db, is_enabled=cmd.is_enabled)
 
     @staticmethod
-    def handle_create_user(cmd: CreateUserCommand, db: Session) -> Dict[str, Any]:
+    def _create_user_record(cmd: CreateUserCommand, db: Session) -> Dict[str, Any]:
+        """Validate hierarchy, create a User + UserProfile in the active DB session (uncommitted)."""
         creator_role_norm = (cmd.creator_role or "").strip().lower().replace(" ", "_")
-        
+
         # 1. Rule: Only Admin and Super Admin roles can create users
         if creator_role_norm not in ["super_admin", "superadmin", "admin"]:
             raise HTTPException(
@@ -488,20 +489,20 @@ class CommandHandlers:
 
         # 2. Rule: Creator can allocate users strictly under the successor Designation of the corresponding role
         if creator_role_norm in ["super_admin", "superadmin"]:
-            # Super Admin can assign: Admin, Human Resource Manager, Team Lead, Intern (NOT Super Admin - cannot assign same designation)
-            allowed_successor_roles = ["admin", "hr", "human_resource_manager", "team_lead", "intern"]
+            # Super Admin can assign: Admin, HR, Team Lead, Employee, Intern (NOT Super Admin)
+            allowed_successor_roles = ["admin", "hr", "human_resource_manager", "team_lead", "employee", "intern"]
             if target_role_norm not in allowed_successor_roles:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Super Admin cannot create a user with the same designation (Super Admin). Only successor designations (Admin, Human Resource Manager, Team Lead, Intern) are permitted."
+                    detail="Super Admin cannot create a user with the same designation (Super Admin). Only successor designations (Admin, Human Resource Manager, Team Lead, Employee, Intern) are permitted."
                 )
         elif creator_role_norm == "admin":
-            # Admin can assign: Human Resource Manager, Team Lead, Intern (NOT Super Admin, and NOT Admin - cannot assign same or higher designation)
-            allowed_successor_roles = ["hr", "human_resource_manager", "team_lead", "intern"]
+            # Admin can assign: HR, Team Lead, Employee, Intern (NOT Super Admin, NOT Admin)
+            allowed_successor_roles = ["hr", "human_resource_manager", "team_lead", "employee", "intern"]
             if target_role_norm not in allowed_successor_roles:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Admins cannot assign users as Super Admin or Admin role. Only successor designations (Human Resource Manager, Team Lead, Intern) are permitted."
+                    detail="Admins cannot assign users as Super Admin or Admin role. Only successor designations (Human Resource Manager, Team Lead, Employee, Intern) are permitted."
                 )
 
         # 3. Check email uniqueness
@@ -532,8 +533,11 @@ class CommandHandlers:
         # 6. Designation formatting
         default_titles = {
             "admin": "Operations Admin",
+            "hr": "Human Resource Manager",
+            "human_resource_manager": "Human Resource Manager",
             "team_lead": "Team Lead Engineer",
-            "intern": "Associate Software Intern"
+            "employee": "Employee",
+            "intern": "Associate Software Intern",
         }
         desig_name = cmd.designation_name.strip() if cmd.designation_name and cmd.designation_name.strip() else default_titles.get(target_role_norm, target_role_norm.replace("_", " ").title())
 
@@ -544,35 +548,32 @@ class CommandHandlers:
         emp_id = desig_num if target_role_norm != "intern" else None
         int_id = desig_num if target_role_norm == "intern" else None
 
-        # 7. Reporting manager adhering to hierarchy rules:
-        # 1. Super_Admin -> Admin -> Team_Lead -> Intern
-        # 2. Admin -> Team_Lead -> Intern
-        # 3. Team_Lead -> Intern
-        # 4. Super_Admin -> HR
+        # 7. Reporting manager adhering to hierarchy rules
         rep_id = cmd.reporting_manager_id
-        if not rep_id:
+        if rep_id is not None:
+            rep_user = db.query(User).filter(User.id == rep_id).first()
+            if not rep_user:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Selected reporting manager not found.")
+        else:
             if target_role_norm in ["hr", "human_resource_manager"]:
-                # Rule 4: Super_Admin -> HR
                 sa = db.query(User).filter(User.role.in_(["super_admin", "superadmin"])).first()
                 rep_id = sa.id if sa else cmd.creator_id
             elif target_role_norm == "admin":
-                # Rule 1: Super_Admin -> Admin
                 sa = db.query(User).filter(User.role.in_(["super_admin", "superadmin"])).first()
                 rep_id = sa.id if sa else cmd.creator_id
             elif target_role_norm == "team_lead":
-                # Rule 2: Admin -> Team_Lead
-                # If created by an Admin, the creator Admin is their direct reporting manager
                 if creator_role_norm == "admin":
                     rep_id = cmd.creator_id
                 else:
                     adm = db.query(User).filter(User.role == "admin").first()
                     rep_id = adm.id if adm else cmd.creator_id
+            elif target_role_norm == "employee":
+                # Keep created Employees directly scoped inside the creator's reporting branch
+                rep_id = cmd.creator_id
             elif target_role_norm == "intern":
-                # Rule 3: Team_Lead -> Intern
                 if creator_role_norm == "team_lead":
                     rep_id = cmd.creator_id
                 elif creator_role_norm == "admin":
-                    # Assign to this Admin's own Team Lead if one exists, otherwise this Admin
                     my_tl = db.query(User).join(UserProfile, User.id == UserProfile.user_id).filter(
                         User.role == "team_lead",
                         UserProfile.reporting_manager_id == cmd.creator_id
@@ -602,8 +603,7 @@ class CommandHandlers:
             country="India"
         )
         db.add(profile)
-        db.commit()
-        db.refresh(new_user)
+        db.flush()
 
         return {
             "id": new_user.id,
@@ -615,6 +615,38 @@ class CommandHandlers:
             "department": profile.department,
             "current_status": new_user.current_status,
             "message": f"Successfully created user '{new_user.full_name}' with designation '{desig_name}'."
+        }
+
+    @staticmethod
+    def handle_create_user(cmd: CreateUserCommand, db: Session) -> Dict[str, Any]:
+        res = CommandHandlers._create_user_record(cmd, db)
+        db.commit()
+        return res
+
+    @staticmethod
+    def handle_bulk_create_users(cmd: BulkCreateUsersCommand, db: Session) -> Dict[str, Any]:
+        """Create multiple employee/team users atomically inside a single transaction."""
+        seen_emails = set()
+        created_items: List[Dict[str, Any]] = []
+        try:
+            for item_cmd in cmd.users:
+                email_clean = item_cmd.email.strip().lower()
+                if email_clean in seen_emails:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Duplicate email '{email_clean}' in bulk upload list."
+                    )
+                seen_emails.add(email_clean)
+                created_items.append(CommandHandlers._create_user_record(item_cmd, db))
+            db.commit()
+        except Exception:
+            db.rollback()
+            raise
+
+        return {
+            "created_count": len(created_items),
+            "users": created_items,
+            "message": f"Successfully created {len(created_items)} team record(s)."
         }
 
     @staticmethod
@@ -679,7 +711,7 @@ class CommandHandlers:
             return False
 
         if actor_role_norm == "team_lead":
-            return target_role_norm == "intern" and target_manager_id == actor_id
+            return target_role_norm in ["intern", "employee"] and target_manager_id == actor_id
 
         if actor_role_norm in ["hr", "human_resource_manager"]:
             return target_manager_id == actor_id or target_role_norm in ["hr_intern", "human_resource_intern"]

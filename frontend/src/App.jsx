@@ -7,6 +7,7 @@ import TeamPage from './pages/TeamPage';
 import ChatPage from './pages/ChatPage';
 import InternRecordsPage from './pages/InternRecordsPage';
 import AttendancePage from './pages/AttendancePage';
+import LeavePage from './pages/LeavePage';
 import SettingsPage from './pages/SettingsPage';
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
@@ -42,7 +43,7 @@ export const App = () => {
     } catch {
       // ignore
     }
-    const validTabs = ['dashboard', 'tasks', 'team', 'chat', 'attendance', 'hr', 'settings'];
+    const validTabs = ['dashboard', 'tasks', 'team', 'chat', 'attendance', 'leave', 'hr', 'settings'];
     if (validTabs.includes(hash)) return hash;
     return 'dashboard';
   });
@@ -60,7 +61,7 @@ export const App = () => {
         window.location.hash = 'dashboard';
         return;
       }
-      if (['dashboard', 'tasks', 'team', 'chat', 'attendance', 'hr', 'settings'].includes(hash)) {
+      if (['dashboard', 'tasks', 'team', 'chat', 'attendance', 'leave', 'hr', 'settings'].includes(hash)) {
         setCurrentTab(hash);
       }
     };
@@ -131,6 +132,7 @@ export const App = () => {
           {currentTab === 'team' && <TeamPage />}
           {currentTab === 'chat' && <ChatPage />}
           {currentTab === 'attendance' && <AttendancePage />}
+          {currentTab === 'leave' && <LeavePage />}
           {currentTab === 'hr' && (canAccessHR(user) ? <InternRecordsPage /> : <DashboardPage onNavigate={setCurrentTab} />)}
           {currentTab === 'settings' && <SettingsPage />}
         </main>

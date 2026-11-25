@@ -35,6 +35,8 @@ const formatRoleBadge = (role) => {
     case 'hr':
     case 'human_resource_manager':
       return { label: 'HR Manager', bg: 'bg-emerald-100 text-emerald-800 border-emerald-200', icon: Shield };
+    case 'employee':
+      return { label: 'Employee', bg: 'bg-sky-100 text-sky-800 border-sky-200', icon: Users };
     case 'intern':
     default:
       return { label: 'Intern', bg: 'bg-brand-100 text-brand-700 border-brand-200', icon: GraduationCap };

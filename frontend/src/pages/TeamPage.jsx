@@ -5,7 +5,7 @@ import {
   Users, Shield, Award, Mail, Phone, MapPin, 
   ChevronRight, ArrowDown, Building2, GraduationCap, 
   CheckCircle, Briefcase, Sparkles, Send, UserPlus, X,
-  AlertCircle, Check, Loader2, Lock, KeyRound, Eye, EyeOff, RefreshCw, Copy
+  AlertCircle, Check, Loader2, Lock, KeyRound, Eye, EyeOff, RefreshCw, Copy, Plus, Trash2
 } from 'lucide-react';
 
 export const TeamPage = () => {
@@ -15,11 +15,12 @@ export const TeamPage = () => {
 
   // Modal & form states for creating users under successor designation
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [createMode, setCreateMode] = useState('single'); // 'single' or 'bulk'
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
   const [formSuccess, setFormSuccess] = useState('');
 
-  // Form state for creating users under successor designation
+  // Form state for creating a single user under successor designation
   const [formData, setFormData] = useState({
     full_name: '',
     email: '',
@@ -29,7 +30,25 @@ export const TeamPage = () => {
     designation_number: '',
     department: 'Edutech',
     mobile: '',
+    reporting_manager_id: '',
   });
+
+  const makeBlankEmployeeRow = () => ({
+    full_name: '',
+    email: '',
+    password: '',
+    role: 'employee',
+    designation_name: 'Employee',
+    designation_number: '',
+    department: 'Edutech',
+    mobile: '',
+  });
+
+  const [bulkEmployees, setBulkEmployees] = useState([
+    makeBlankEmployeeRow(),
+    makeBlankEmployeeRow(),
+  ]);
+  const [bulkManagerId, setBulkManagerId] = useState('');
 
   const fetchHierarchy = async () => {
     try {
@@ -126,14 +145,15 @@ export const TeamPage = () => {
   };
 
   // Allowed successor designations strictly based on user hierarchy rules:
-  // - Super Admin can allocate: Admin, Human Resource Manager, Team Lead, Intern (NOT Super Admin)
-  // - Admin can allocate: Human Resource Manager, Team Lead, Intern (NOT Super Admin, NOT Admin)
+  // - Super Admin can allocate: Admin, Human Resource Manager, Team Lead, Employee, Intern
+  // - Admin can allocate: Human Resource Manager, Team Lead, Employee, Intern
   const allowedRoles = useMemo(() => {
     if (isSuperAdmin) {
       return [
         { value: 'admin', label: 'Admin', desc: 'Direct Successor Designation' },
         { value: 'hr', label: 'Human Resource Manager', desc: 'Successor Designation' },
         { value: 'team_lead', label: 'Team Lead', desc: 'Successor Designation' },
+        { value: 'employee', label: 'Employee', desc: 'Employee Designation' },
         { value: 'intern', label: 'Intern', desc: 'Successor Designation' },
       ];
     }
@@ -141,26 +161,120 @@ export const TeamPage = () => {
       return [
         { value: 'hr', label: 'Human Resource Manager', desc: 'Direct Successor Designation' },
         { value: 'team_lead', label: 'Team Lead', desc: 'Successor Designation' },
+        { value: 'employee', label: 'Employee', desc: 'Employee Designation' },
         { value: 'intern', label: 'Intern', desc: 'Successor Designation' },
       ];
     }
     return [];
   }, [isSuperAdmin, isAdmin]);
 
-  const handleOpenCreateModal = () => {
+  // Selectable reporting managers inside the creator's branch
+  const managerOptions = useMemo(() => {
+    const list = [];
+    if (user?.id) {
+      list.push({ id: user.id, label: `${user.full_name || user.email} (Me - ${user.role?.replace('_', ' ')})` });
+    }
+    (hierarchy?.successors || []).forEach((m) => {
+      const r = (m.role || '').toLowerCase().replace(' ', '_');
+      if (['admin', 'team_lead'].includes(r) && m.id !== user?.id) {
+        list.push({ id: m.id, label: `${m.full_name} (${r === 'admin' ? 'Admin' : 'Team Lead'})` });
+      }
+    });
+    return list;
+  }, [hierarchy, user]);
+
+  const handleOpenCreateModal = (mode = 'single', defaultRole = null) => {
+    const initialRole = defaultRole || allowedRoles[0]?.value || 'employee';
+    setCreateMode(mode);
     setFormData({
       full_name: '',
       email: '',
       password: '',
-      role: allowedRoles[0]?.value || 'team_lead',
-      designation_name: '',
+      role: initialRole,
+      designation_name: initialRole === 'employee' ? 'Employee' : '',
       designation_number: '',
       department: 'Edutech',
       mobile: '',
+      reporting_manager_id: '',
     });
+    setBulkEmployees([makeBlankEmployeeRow(), makeBlankEmployeeRow()]);
+    setBulkManagerId('');
     setFormError('');
     setFormSuccess('');
     setShowCreateModal(true);
+  };
+
+  const handleAddBulkRow = () => {
+    setBulkEmployees((prev) => [...prev, makeBlankEmployeeRow()]);
+  };
+
+  const handleRemoveBulkRow = (idx) => {
+    setBulkEmployees((prev) => (prev.length > 1 ? prev.filter((_, i) => i !== idx) : prev));
+  };
+
+  const handleBulkRowChange = (idx, field, value) => {
+    setBulkEmployees((prev) =>
+      prev.map((row, i) => (i === idx ? { ...row, [field]: value } : row))
+    );
+  };
+
+  const handleBulkCreateEmployees = async (e) => {
+    e.preventDefault();
+    setFormError('');
+    setFormSuccess('');
+
+    const filled = bulkEmployees.filter(
+      (r) => r.full_name.trim() || r.email.trim() || r.password
+    );
+    if (filled.length === 0) {
+      setFormError('Please fill out at least one employee record.');
+      return;
+    }
+
+    for (let i = 0; i < filled.length; i++) {
+      const row = filled[i];
+      if (!row.full_name.trim()) {
+        setFormError(`Row ${i + 1}: Please enter employee full name.`);
+        return;
+      }
+      if (!row.email.trim()) {
+        setFormError(`Row ${i + 1}: Please enter a valid email address.`);
+        return;
+      }
+      if (!row.password || row.password.length < 6) {
+        setFormError(`Row ${i + 1}: Password must be at least 6 characters.`);
+        return;
+      }
+    }
+
+    try {
+      setSubmitting(true);
+      const payloadUsers = filled.map((row) => ({
+        full_name: row.full_name.trim(),
+        email: row.email.trim(),
+        password: row.password,
+        role: 'employee',
+        designation_name: row.designation_name.trim() || 'Employee',
+        designation_number: row.designation_number.trim() || undefined,
+        department: row.department || 'Edutech',
+        mobile: row.mobile.trim() || undefined,
+        reporting_manager_id: bulkManagerId ? Number(bulkManagerId) : undefined,
+      }));
+
+      const res = await teamApi.createUsersBulk(payloadUsers);
+      setFormSuccess(res.data?.message || `Created ${payloadUsers.length} employees successfully!`);
+      await fetchHierarchy();
+
+      setTimeout(() => {
+        setShowCreateModal(false);
+        setFormSuccess('');
+      }, 1500);
+    } catch (err) {
+      console.error('Failed to bulk create employees:', err);
+      setFormError(err.response?.data?.detail || 'Failed to create employee records.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleCreateUser = async (e) => {
@@ -196,6 +310,7 @@ export const TeamPage = () => {
         designation_number: formData.designation_number.trim() || undefined,
         department: formData.department || 'Edutech',
         mobile: formData.mobile.trim() || undefined,
+        reporting_manager_id: formData.reporting_manager_id ? Number(formData.reporting_manager_id) : undefined,
       };
 
       const res = await teamApi.createUser(payload);
@@ -230,11 +345,14 @@ export const TeamPage = () => {
       // In the Intern they can see their corresponding team member (fellow interns under same team lead)
       return hierarchy.peers || [];
     }
+    if (userRoleNorm === 'employee') {
+      return [...(hierarchy.successors || []), ...(hierarchy.peers || [])];
+    }
     if (userRole === 'team_lead') {
-      // If I login into team_lead, i should see only my corresponding intern members
+      // Team Lead sees Employees and Interns reporting directly to them
       return (hierarchy.successors || []).filter(m => {
         const r = (m.role || '').toLowerCase().replace(' ', '_');
-        return r === 'intern';
+        return r === 'intern' || r === 'employee';
       });
     }
     if (userRole === 'hr' || userRole === 'human_resource_manager' || (user?.designation && user.designation.toLowerCase().includes('human resource'))) {
@@ -242,22 +360,21 @@ export const TeamPage = () => {
       return [];
     }
     if (userRole === 'admin') {
-      // If I login into admin, on the team page, I should see only my corresponding "team_lead"
-      // [not all the team lead irrespective of other admin team lead]
+      // Admin sees their corresponding Team Leads and Employees within their branch
       return (hierarchy.successors || []).filter(m => {
         const r = (m.role || '').toLowerCase().replace(' ', '_');
-        return r === 'team_lead';
+        return r === 'team_lead' || r === 'employee';
       });
     }
     if (isSuperAdmin) {
-      // If I login into superadmin, on the team member page, I should see only the admin
+      // Super Admin sees Admins and Employees allocated directly
       return (hierarchy.successors || []).filter(m => {
         const r = (m.role || '').toLowerCase().replace(' ', '_');
-        return r === 'admin';
+        return r === 'admin' || r === 'employee';
       });
     }
     return hierarchy.successors || hierarchy.peers || [];
-  }, [hierarchy, userRole, isSuperAdmin, user]);
+  }, [hierarchy, userRole, userRoleNorm, isSuperAdmin, user]);
 
   // Successor popup state for Superadmin and Admin:
   // - Superadmin: Click Admin profile -> popup showing that Admin's following successor employee (Team Lead)
@@ -274,19 +391,19 @@ export const TeamPage = () => {
     ];
 
     if (isSuperAdmin && roleNorm === 'admin') {
-      // Super Admin clicked an Admin -> popup 1st following successor (Team Lead)
-      const teamLeads = allMembers.filter(m => {
+      // Super Admin clicked an Admin -> popup 1st following successors (Team Leads & direct Employees)
+      const directReports = allMembers.filter(m => {
         const r = (m.role || '').toLowerCase().replace(' ', '_');
-        return r === 'team_lead' && m.reporting_manager_id === member.id;
+        return (r === 'team_lead' || r === 'employee') && m.reporting_manager_id === member.id;
       });
 
       setSuccessorPopupData({
         parentMember: member,
-        title: '1st Following Successor: Team Lead',
-        roleBadge: 'Team Lead',
+        title: '1st Following Successors: Team Leads & Employees',
+        roleBadge: 'Team Lead / Employee',
         badgeColor: 'bg-amber-100 text-amber-800 border-amber-200',
-        members: teamLeads,
-        emptyMessage: `No Team Leads currently assigned under ${member.full_name}.`,
+        members: directReports,
+        emptyMessage: `No Team Leads or Employees currently assigned under ${member.full_name}.`,
         isLeaf: false,
       });
       setIsSuccessorPopupOpen(true);
@@ -294,19 +411,19 @@ export const TeamPage = () => {
     }
 
     if (isAdmin && roleNorm === 'team_lead') {
-      // Admin clicked their Team Lead -> popup following successor (Intern members)
-      const interns = allMembers.filter(m => {
+      // Admin clicked their Team Lead -> popup following successors (Employees & Interns)
+      const membersUnderTL = allMembers.filter(m => {
         const r = (m.role || '').toLowerCase().replace(' ', '_');
-        return r === 'intern' && m.reporting_manager_id === member.id;
+        return (r === 'intern' || r === 'employee') && m.reporting_manager_id === member.id;
       });
 
       setSuccessorPopupData({
         parentMember: member,
-        title: 'Following Successor: Intern Members',
-        roleBadge: 'Intern',
+        title: 'Following Successors: Employees & Interns',
+        roleBadge: 'Employee / Intern',
         badgeColor: 'bg-brand-100 text-brand-800 border-brand-200',
-        members: interns,
-        emptyMessage: `No Interns currently assigned under ${member.full_name}.`,
+        members: membersUnderTL,
+        emptyMessage: `No Employees or Interns currently assigned under ${member.full_name}.`,
         isLeaf: true,
       });
       setIsSuccessorPopupOpen(true);
@@ -325,6 +442,8 @@ export const TeamPage = () => {
         return { label: 'Human Resource Manager', color: 'bg-emerald-100 text-emerald-800 border-emerald-200' };
       case 'team_lead':
         return { label: 'Team Lead', color: 'bg-amber-100 text-amber-800 border-amber-200' };
+      case 'employee':
+        return { label: 'Employee', color: 'bg-sky-100 text-sky-800 border-sky-200' };
       case 'intern':
       default:
         return { label: 'Intern', color: 'bg-brand-100 text-brand-800 border-brand-200' };
@@ -349,14 +468,24 @@ export const TeamPage = () => {
           </div>
           <div className="flex flex-wrap items-center gap-3">
             {canCreateUser && (
-              <button
-                type="button"
-                onClick={handleOpenCreateModal}
-                className="inline-flex items-center space-x-2 px-3.5 py-1.5 bg-brand-600 hover:bg-brand-700 text-white text-xs sm:text-sm font-semibold rounded-xl shadow-xs transition-colors cursor-pointer"
-              >
-                <UserPlus className="w-4 h-4" />
-                <span>Create User</span>
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={() => handleOpenCreateModal('bulk', 'employee')}
+                  className="inline-flex items-center space-x-2 px-3.5 py-1.5 bg-sky-600 hover:bg-sky-700 text-white text-xs sm:text-sm font-semibold rounded-xl shadow-xs transition-colors cursor-pointer"
+                >
+                  <Users className="w-4 h-4" />
+                  <span>Add Multiple Employees</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleOpenCreateModal('single', 'employee')}
+                  className="inline-flex items-center space-x-2 px-3.5 py-1.5 bg-brand-600 hover:bg-brand-700 text-white text-xs sm:text-sm font-semibold rounded-xl shadow-xs transition-colors cursor-pointer"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  <span>Create User</span>
+                </button>
+              </>
             )}
           </div>
         </div>
@@ -642,50 +771,65 @@ export const TeamPage = () => {
         )}
       </div>
 
-      {/* ================= CREATE USER MODAL ================= */}
+      {/* ================= CREATE USER / BULK EMPLOYEES MODAL ================= */}
       {showCreateModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 border border-slate-100 my-8 animate-in fade-in zoom-in-95 duration-150">
+          <div className={`bg-white rounded-2xl shadow-2xl ${createMode === 'bulk' ? 'max-w-3xl' : 'max-w-lg'} w-full p-6 border border-slate-100 my-8 max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-150`}>
             {/* Modal Header */}
             <div className="flex items-center justify-between pb-4 border-b border-slate-100">
               <div className="flex items-center space-x-2.5">
                 <div className="w-9 h-9 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center">
-                  <UserPlus className="w-5 h-5" />
+                  {createMode === 'bulk' ? <Users className="w-5 h-5" /> : <UserPlus className="w-5 h-5" />}
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-slate-900">Create New Team User</h3>
-                  <p className="text-xs text-slate-500">Allocate under successor designation</p>
+                  <h3 className="text-base font-bold text-slate-900">
+                    {createMode === 'bulk' ? 'Add Multiple Employees' : 'Create New Team User'}
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    {createMode === 'bulk'
+                      ? 'Batch create employee accounts with Employee designation'
+                      : 'Allocate under successor designation'}
+                  </p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setShowCreateModal(false)}
-                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors"
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Role Allocation Authority Explanatory Banner */}
-            {/* <div className="my-4 p-3 rounded-xl bg-slate-50 border border-slate-200/80 text-xs text-slate-600 space-y-1">
-              <div className="flex items-center space-x-1.5 font-semibold text-slate-800">
-                <Shield className="w-3.5 h-3.5 text-brand-600" />
-                <span>
-                  Logged in as: <span className="capitalize">{userRole.replace('_', ' ')}</span>
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-500 leading-relaxed">
-                {isSuperAdmin ? (
-                  <>
-                    <strong className="text-slate-700">Successor Allocation Rule:</strong> As Super Admin, you can assign users to <span className="font-semibold text-brand-700">Admin, Team Lead, and Intern</span>. Same designation (Super Admin) is restricted.
-                  </>
-                ) : (
-                  <>
-                    <strong className="text-slate-700">Successor Allocation Rule:</strong> As Admin, you can assign users to <span className="font-semibold text-brand-700">Team Lead and Intern</span>. Super Admin and Admin designations are restricted.
-                  </>
-                )}
-              </p>
-            </div> */}
+            {/* Mode Switcher */}
+            <div className="my-4 bg-slate-100 p-1 rounded-xl inline-flex items-center border border-slate-200 text-xs">
+              <button
+                type="button"
+                onClick={() => {
+                  setCreateMode('single');
+                  setFormError('');
+                  setFormSuccess('');
+                }}
+                className={`px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer ${
+                  createMode === 'single' ? 'bg-white text-brand-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Single User
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setCreateMode('bulk');
+                  setFormError('');
+                  setFormSuccess('');
+                }}
+                className={`px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer ${
+                  createMode === 'bulk' ? 'bg-white text-sky-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Multiple Employees (Bulk)
+              </button>
+            </div>
 
             {/* Error Message */}
             {formError && (
@@ -703,164 +847,334 @@ export const TeamPage = () => {
               </div>
             )}
 
-            {/* Form */}
-            <form onSubmit={handleCreateUser} className="space-y-4">
-              {/* Full Name */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Full Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Ramesh Kumar"
-                  value={formData.full_name}
-                  onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                  className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
-                />
-              </div>
-
-              {/* Email & Password */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {createMode === 'single' ? (
+              <form onSubmit={handleCreateUser} className="space-y-4">
+                {/* Full Name */}
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Email Address <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    placeholder="e.g. ramesh@ingage.com"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Password <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="password"
-                    required
-                    minLength={6}
-                    placeholder="Min 6 characters"
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
-                  />
-                </div>
-              </div>
-
-              {/* Successor Designation Role Dropdown */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Successor Designation Role <span className="text-red-500">*</span>
-                </label>
-                <select
-                  required
-                  value={formData.role}
-                  onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                  className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500 bg-white"
-                >
-                  {allowedRoles.map((r) => (
-                    <option key={r.value} value={r.value}>
-                      {r.label} ({r.desc})
-                    </option>
-                  ))}
-                </select>
-                <p className="text-[10px] text-slate-400 mt-1">
-                  {isSuperAdmin
-                    ? 'Only successor roles (Admin, Team Lead, Intern) are selectable.'
-                    : 'Only successor roles (Team Lead, Intern) are selectable.'}
-                </p>
-              </div>
-
-              {/* Designation Name & Number */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Employee Designation Name
+                    Full Name <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
-                    placeholder={formData.role === 'admin' ? 'Operations Admin' : formData.role === 'team_lead' ? 'Senior Team Lead' : 'Frontend Developer Intern'}
-                    value={formData.designation_name}
-                    onChange={(e) => setFormData({ ...formData, designation_name: e.target.value })}
+                    required
+                    placeholder="e.g. Ramesh Kumar"
+                    value={formData.full_name}
+                    onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
                     className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
                   />
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Employee Designation Number
-                  </label>
-                  <input
-                    type="text"
-                    placeholder={formData.role === 'intern' ? 'ING-INT-2026-0005' : 'ING-EMP-2026-0015'}
-                    value={formData.designation_number}
-                    onChange={(e) => setFormData({ ...formData, designation_number: e.target.value })}
-                    className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
-                  />
-                </div>
-              </div>
 
-              {/* Department & Mobile */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Department
-                  </label>
-                  <select
-                    value={formData.department}
-                    onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                    className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500 bg-white"
+                {/* Email & Password */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Email Address <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      placeholder="e.g. ramesh@ingage.com"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Password <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="password"
+                      required
+                      minLength={6}
+                      placeholder="Min 6 characters"
+                      value={formData.password}
+                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Successor Designation Role & Reporting Manager */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Successor Designation Role <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      required
+                      value={formData.role}
+                      onChange={(e) => {
+                        const nextRole = e.target.value;
+                        setFormData((prev) => ({
+                          ...prev,
+                          role: nextRole,
+                          designation_name:
+                            nextRole === 'employee'
+                              ? prev.designation_name || 'Employee'
+                              : prev.designation_name === 'Employee'
+                              ? ''
+                              : prev.designation_name,
+                        }));
+                      }}
+                      className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500 bg-white"
+                    >
+                      {allowedRoles.map((r) => (
+                        <option key={r.value} value={r.value}>
+                          {r.label} ({r.desc})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Reporting Manager (Optional)
+                    </label>
+                    <select
+                      value={formData.reporting_manager_id}
+                      onChange={(e) => setFormData({ ...formData, reporting_manager_id: e.target.value })}
+                      className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500 bg-white"
+                    >
+                      <option value="">Default Branch Manager</option>
+                      {managerOptions.map((opt) => (
+                        <option key={opt.id} value={opt.id}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Designation Name & Number */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Employee Designation Name
+                    </label>
+                    <input
+                      type="text"
+                      placeholder={
+                        formData.role === 'admin'
+                          ? 'Operations Admin'
+                          : formData.role === 'team_lead'
+                          ? 'Senior Team Lead'
+                          : formData.role === 'employee'
+                          ? 'Employee'
+                          : 'Frontend Developer Intern'
+                      }
+                      value={formData.designation_name}
+                      onChange={(e) => setFormData({ ...formData, designation_name: e.target.value })}
+                      className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Employee Designation Number
+                    </label>
+                    <input
+                      type="text"
+                      placeholder={formData.role === 'intern' ? 'ING-INT-2026-0005' : 'ING-EMP-2026-0015'}
+                      value={formData.designation_number}
+                      onChange={(e) => setFormData({ ...formData, designation_number: e.target.value })}
+                      className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Department & Mobile */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Department
+                    </label>
+                    <select
+                      value={formData.department}
+                      onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                      className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500 bg-white"
+                    >
+                      <option value="Edutech">Edutech</option>
+                      <option value="Ingage">Ingage</option>
+                      <option value="Rezov">Rezov</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Mobile Number (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="+91 98765 43210"
+                      value={formData.mobile}
+                      onChange={(e) => setFormData({ ...formData, mobile: e.target.value })}
+                      className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Modal Actions */}
+                <div className="pt-3 border-t border-slate-100 flex items-center justify-end space-x-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateModal(false)}
+                    className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
                   >
-                    <option value="Edutech">Edutech</option>
-                    <option value="Ingage">Ingage</option>
-                    <option value="Rezov">Rezov</option>
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="inline-flex items-center space-x-1.5 px-4 py-2 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white text-xs font-semibold rounded-xl shadow-xs transition-colors cursor-pointer"
+                  >
+                    {submitting ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>Creating...</span>
+                      </>
+                    ) : (
+                      <>
+                        <UserPlus className="w-3.5 h-3.5" />
+                        <span>Create User</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <form onSubmit={handleBulkCreateEmployees} className="space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-xl bg-sky-50/70 border border-sky-200">
+                  <div className="text-xs text-sky-900">
+                    <span className="font-bold">Designation: Employee</span> • All added rows create <code className="px-1 py-0.5 bg-white rounded">role=&quot;employee&quot;</code> records directly in PostgreSQL / Supabase.
+                  </div>
+                  <select
+                    value={bulkManagerId}
+                    onChange={(e) => setBulkManagerId(e.target.value)}
+                    className="text-xs px-2.5 py-1.5 rounded-lg border border-sky-200 bg-white focus:outline-hidden"
+                    title="Reporting Manager for all employees below"
+                  >
+                    <option value="">Default Branch Manager</option>
+                    {managerOptions.map((opt) => (
+                      <option key={opt.id} value={opt.id}>
+                        {opt.label}
+                      </option>
+                    ))}
                   </select>
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Mobile Number (Optional)
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="+91 98765 43210"
-                    value={formData.mobile}
-                    onChange={(e) => setFormData({ ...formData, mobile: e.target.value })}
-                    className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
-                  />
-                </div>
-              </div>
 
-              {/* Modal Actions */}
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-end space-x-2">
-                <button
-                  type="button"
-                  onClick={() => setShowCreateModal(false)}
-                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="inline-flex items-center space-x-1.5 px-4 py-2 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white text-xs font-semibold rounded-xl shadow-xs transition-colors cursor-pointer"
-                >
-                  {submitting ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>Creating...</span>
-                    </>
-                  ) : (
-                    <>
-                      <UserPlus className="w-3.5 h-3.5" />
-                      <span>Create User</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
+                <div className="space-y-3 max-h-[46vh] overflow-y-auto pr-1">
+                  {bulkEmployees.map((row, idx) => (
+                    <div key={idx} className="p-3 rounded-xl border border-slate-200 bg-slate-50/60 space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
+                          Employee #{idx + 1}
+                        </span>
+                        {bulkEmployees.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveBulkRow(idx)}
+                            className="text-rose-600 hover:text-rose-800 p-1 rounded-lg hover:bg-rose-50 cursor-pointer"
+                            title="Remove row"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <input
+                          type="text"
+                          placeholder="Full Name *"
+                          value={row.full_name}
+                          onChange={(e) => handleBulkRowChange(idx, 'full_name', e.target.value)}
+                          className="text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white"
+                        />
+                        <input
+                          type="email"
+                          placeholder="Email Address *"
+                          value={row.email}
+                          onChange={(e) => handleBulkRowChange(idx, 'email', e.target.value)}
+                          className="text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white"
+                        />
+                        <input
+                          type="password"
+                          placeholder="Password (min 6) *"
+                          value={row.password}
+                          onChange={(e) => handleBulkRowChange(idx, 'password', e.target.value)}
+                          className="text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white"
+                        />
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
+                        <input
+                          type="text"
+                          placeholder="Designation (Employee)"
+                          value={row.designation_name}
+                          onChange={(e) => handleBulkRowChange(idx, 'designation_name', e.target.value)}
+                          className="text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white"
+                        />
+                        <input
+                          type="text"
+                          placeholder="Employee ID (auto if blank)"
+                          value={row.designation_number}
+                          onChange={(e) => handleBulkRowChange(idx, 'designation_number', e.target.value)}
+                          className="text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white"
+                        />
+                        <select
+                          value={row.department}
+                          onChange={(e) => handleBulkRowChange(idx, 'department', e.target.value)}
+                          className="text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white"
+                        >
+                          <option value="Edutech">Edutech</option>
+                          <option value="Ingage">Ingage</option>
+                          <option value="Rezov">Rezov</option>
+                        </select>
+                        <input
+                          type="text"
+                          placeholder="Mobile (Optional)"
+                          value={row.mobile}
+                          onChange={(e) => handleBulkRowChange(idx, 'mobile', e.target.value)}
+                          className="text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="pt-2 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={handleAddBulkRow}
+                    className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 text-xs font-semibold rounded-xl transition-colors cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Add Another Employee</span>
+                  </button>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowCreateModal(false)}
+                      className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={submitting}
+                      className="inline-flex items-center space-x-1.5 px-4 py-2 bg-sky-600 hover:bg-sky-700 disabled:opacity-50 text-white text-xs font-semibold rounded-xl shadow-xs transition-colors cursor-pointer"
+                    >
+                      {submitting ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          <span>Saving Employees...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Users className="w-3.5 h-3.5" />
+                          <span>Create All Employees</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}

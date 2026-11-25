@@ -2,9 +2,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import asyncio
+import os
 
 from app.core.config import settings
-from app.api import auth, dashboard, tasks, team, settings as settings_api, notifications, projects, intern_records, presence, chat, attendance
+from app.api import auth, dashboard, tasks, team, settings as settings_api, notifications, projects, intern_records, presence, chat, attendance, leaves
 from app.core.websocket_manager import ws_manager
 from app.services.notification_cleanup_service import notification_cleanup_background_scheduler
 from app.seed import seed_database
@@ -22,27 +23,39 @@ async def periodic_8min_presence_service():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Ensure database is seeded and new tables created on startup
+    is_serverless = bool(os.getenv("VERCEL") or os.getenv("VERCEL_ENV"))
+
+    # Ensure database schema exists and seed only when database is empty
     try:
-        from app.core.database import engine, Base
+        from app.core.database import engine, Base, SessionLocal
+        from app.models.domain import User
         Base.metadata.create_all(bind=engine)
-        seed_database()
+        db = SessionLocal()
+        try:
+            has_users = db.query(User.id).first() is not None
+        finally:
+            db.close()
+        if not has_users:
+            seed_database()
     except Exception as e:
         print(f"Startup seed notice: {e}")
 
-    # 1. Start 8-minute periodic employee presence service
-    presence_task = asyncio.create_task(periodic_8min_presence_service())
-    # 2. Start 90-day notification retention cleanup service (Every Sunday & Monday 6AM catch-up)
-    cleanup_task = asyncio.create_task(notification_cleanup_background_scheduler(check_interval_seconds=60))
+    background_tasks = []
+    if not is_serverless:
+        # 1. Start 8-minute periodic employee presence service
+        background_tasks.append(asyncio.create_task(periodic_8min_presence_service()))
+        # 2. Start 90-day notification retention cleanup service (Every Sunday & Monday 6AM catch-up)
+        background_tasks.append(asyncio.create_task(notification_cleanup_background_scheduler(check_interval_seconds=60)))
 
     yield
 
-    presence_task.cancel()
-    cleanup_task.cancel()
-    try:
-        await asyncio.gather(presence_task, cleanup_task, return_exceptions=True)
-    except Exception:
-        pass
+    for task in background_tasks:
+        task.cancel()
+    if background_tasks:
+        try:
+            await asyncio.gather(*background_tasks, return_exceptions=True)
+        except Exception:
+            pass
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -72,6 +85,7 @@ app.include_router(intern_records.router, prefix=settings.API_V1_STR)
 app.include_router(presence.router, prefix=settings.API_V1_STR)
 app.include_router(chat.router, prefix=settings.API_V1_STR)
 app.include_router(attendance.router, prefix=settings.API_V1_STR)
+app.include_router(leaves.router, prefix=settings.API_V1_STR)
 
 @app.get("/api/health")
 def health_check():

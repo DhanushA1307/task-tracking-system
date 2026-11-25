@@ -13,6 +13,7 @@ import {
   FileSpreadsheet,
   MessageSquare,
   CalendarCheck,
+  CalendarOff,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -158,6 +159,13 @@ export const Sidebar = ({ currentTab, onSelectTab }) => {
       description: 'Check-in & attendance ledger',
     },
     {
+      id: 'leave',
+      index: '06',
+      label: 'Leave',
+      icon: CalendarOff,
+      description: 'Apply & manage leave requests',
+    },
+    {
       id: 'hr',
       index: '06',
       label: 'HR',
@@ -194,6 +202,7 @@ export const Sidebar = ({ currentTab, onSelectTab }) => {
       case 'super_admin': return 'Super Admin';
       case 'admin': return 'Admin';
       case 'team_lead': return 'Team Lead';
+      case 'employee': return 'Employee';
       case 'intern': return 'Intern';
       case 'hr':
       case 'human_resource_manager': return 'Human Resource Manager';

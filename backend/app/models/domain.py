@@ -14,7 +14,7 @@ class User(Base):
     full_name = Column(String(150), nullable=True)
     email = Column(String(255), unique=True, nullable=False, index=True)
     password_hash = Column(String(255), nullable=True)
-    role = Column(String(20), nullable=False) # super_admin, admin, team_lead, intern
+    role = Column(String(20), nullable=False) # super_admin, admin, hr, team_lead, employee, intern
     status = Column(String(30), nullable=False, default="Active")
     profile_status = Column(String(30), nullable=False, default="Completed")
     must_change_password = Column(Boolean, nullable=False, default=False)
@@ -296,6 +296,70 @@ class AttendanceSetting(Base):
     updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
 
     updated_by = relationship("User", foreign_keys=[updated_by_id])
+
+
+class LeavePolicy(Base):
+    """
+    Super Admin customizable leave limits for each leave mode/category.
+    """
+    __tablename__ = "leave_policies"
+
+    id = Column(Integer, primary_key=True, index=True)
+    leave_key = Column(String(50), unique=True, nullable=False, index=True)
+    label = Column(String(100), nullable=False)
+    description = Column(String(255), nullable=True)
+    max_days_limit = Column(Float, nullable=False, default=5.0)
+    updated_by_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
+
+    updated_by = relationship("User", foreign_keys=[updated_by_id])
+
+
+class LeaveRequest(Base):
+    """
+    Leave application submitted by non-Super-Admin designations.
+    """
+    __tablename__ = "leave_requests"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    leave_category = Column(String(40), nullable=False, default="regular")  # regular, emergency_leave, sick_leave
+    duration_mode = Column(String(40), nullable=False, default="single_day")  # single_day, half_day, consecutive_days, selective_days
+    half_day_slot = Column(String(30), nullable=True)  # morning, afternoon
+    start_date = Column(Date, nullable=True)
+    end_date = Column(Date, nullable=True)
+    selected_dates = Column(JSON, nullable=True)
+    total_days = Column(Float, nullable=False, default=1.0)
+    reason = Column(Text, nullable=False)
+    status = Column(String(30), nullable=False, default="Pending")  # Pending, Approved, Rejected
+    reviewed_by_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    reviewer_remarks = Column(Text, nullable=True)
+    reviewed_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
+
+    applicant = relationship("User", foreign_keys=[user_id])
+    reviewed_by = relationship("User", foreign_keys=[reviewed_by_id])
+    recipients = relationship("LeaveRecipient", back_populates="leave_request", cascade="all, delete-orphan")
+
+
+class LeaveRecipient(Base):
+    """
+    Tracks the 3 designated recipients (Super Admin, Admin, Higher Officer) for each leave request.
+    """
+    __tablename__ = "leave_recipients"
+
+    id = Column(Integer, primary_key=True, index=True)
+    leave_request_id = Column(Integer, ForeignKey("leave_requests.id", ondelete="CASCADE"), nullable=False, index=True)
+    recipient_user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    recipient_tier = Column(String(40), nullable=False)  # super_admin, admin, higher_officer
+    decision = Column(String(30), nullable=False, default="Pending")
+    remarks = Column(Text, nullable=True)
+    acted_at = Column(DateTime(timezone=True), nullable=True)
+
+    leave_request = relationship("LeaveRequest", back_populates="recipients")
+    recipient = relationship("User", foreign_keys=[recipient_user_id])
+
 
 
 
