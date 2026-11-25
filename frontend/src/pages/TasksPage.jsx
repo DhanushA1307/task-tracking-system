@@ -1041,7 +1041,7 @@ export const TasksPage = () => {
         </div>
 
         {/* Successors & Reporting Subordinate Banner (Dedicated for HR & Hierarchy Roles) */}
-        {isHRRole && (
+        {/* {isHRRole && (
           <div className="mt-4 p-4 bg-gradient-to-r from-purple-50 via-slate-50 to-emerald-50 rounded-xl border border-purple-200/80 shadow-2xs space-y-2">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center space-x-2">
@@ -1071,7 +1071,7 @@ export const TasksPage = () => {
               While logged in on credentials <strong>hr@ingage.com</strong>, the count for <strong>Successors &amp; Reporting Subordinate is {successorsCount}</strong>. The successor count does <strong>not align with all tasks</strong>; it aligns strictly with <strong>(super_admin → hr)</strong>, <strong>(super_admin → hr → hr_intern)</strong>, or <strong>(super_admin → any_roles_relate_with_hr)</strong>. Zero correlation with engineering interns, team leads, or admins.
             </p>
           </div>
-        )}
+        )} */}
 
         {/* Global Filter Bar */}
         <div className="mt-5 pt-4 border-t border-slate-100 flex flex-col lg:flex-row items-center justify-between gap-3">

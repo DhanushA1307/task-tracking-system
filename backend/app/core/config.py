@@ -34,7 +34,7 @@ class Settings:
             "http://127.0.0.1:5173",
             "http://localhost:3000",
             "http://localhost:8000",
-            os.getenv("FRONTEND_URL", ""),
+            os.getenv("FRONTEND_URL", "").rstrip("/"),
             f"https://{os.getenv('VERCEL_URL', '')}" if os.getenv("VERCEL_URL") else "",
             *_extra_cors,
         ] if origin

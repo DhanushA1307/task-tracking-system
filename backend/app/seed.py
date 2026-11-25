@@ -394,6 +394,132 @@ def seed_database():
             hr_profile.department = "Ingage"
             hr_profile.reporting_manager_id = super_admin.id
 
+        # Level 5: 5 Accounts under "employee" Role
+        employee_seeds = [
+            {
+                "email": "rohan.verma@ingage.com",
+                "full_name": "Rohan Verma",
+                "employee_id": "ING-EMP-2025-0021",
+                "designation": "Employee (Software Engineer)",
+                "department": "Edutech",
+                "reporting_manager_id": team_lead.id,
+                "mobile": "+91 98401 23411",
+                "city": "Chennai",
+                "state": "Tamil Nadu",
+                "skills": ["Python", "FastAPI", "React", "PostgreSQL"],
+                "profile_photo": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop&q=80",
+                "joining_date": date(2025, 4, 1),
+            },
+            {
+                "email": "sneha.patel@ingage.com",
+                "full_name": "Sneha Patel",
+                "employee_id": "ING-EMP-2025-0022",
+                "designation": "Employee (Frontend Developer)",
+                "department": "Edutech",
+                "reporting_manager_id": team_lead.id,
+                "mobile": "+91 98401 23412",
+                "city": "Chennai",
+                "state": "Tamil Nadu",
+                "skills": ["ReactJS", "TypeScript", "Tailwind CSS", "Redux"],
+                "profile_photo": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&auto=format&fit=crop&q=80",
+                "joining_date": date(2025, 4, 15),
+            },
+            {
+                "email": "vikram.malhotra@ingage.com",
+                "full_name": "Vikram Malhotra",
+                "employee_id": "ING-EMP-2025-0023",
+                "designation": "Employee (Backend Developer)",
+                "department": "Edutech",
+                "reporting_manager_id": team_lead.id,
+                "mobile": "+91 98401 23413",
+                "city": "Bengaluru",
+                "state": "Karnataka",
+                "skills": ["Python", "FastAPI", "Docker", "PostgreSQL", "Redis"],
+                "profile_photo": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&auto=format&fit=crop&q=80",
+                "joining_date": date(2025, 5, 1),
+            },
+            {
+                "email": "pooja.hegde@ingage.com",
+                "full_name": "Pooja Hegde",
+                "employee_id": "ING-EMP-2025-0024",
+                "designation": "Employee (QA Engineer)",
+                "department": "Edutech",
+                "reporting_manager_id": team_lead.id,
+                "mobile": "+91 98401 23414",
+                "city": "Chennai",
+                "state": "Tamil Nadu",
+                "skills": ["Automation Testing", "Selenium", "Jest", "API Testing", "Postman"],
+                "profile_photo": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80",
+                "joining_date": date(2025, 5, 15),
+            },
+            {
+                "email": "arjun.das@ingage.com",
+                "full_name": "Arjun Das",
+                "employee_id": "ING-EMP-2025-0025",
+                "designation": "Employee (DevOps Engineer)",
+                "department": "Ingage",
+                "reporting_manager_id": admin.id,
+                "mobile": "+91 98401 23415",
+                "city": "Chennai",
+                "state": "Tamil Nadu",
+                "skills": ["AWS", "Docker", "Kubernetes", "CI/CD", "Linux"],
+                "profile_photo": "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400&auto=format&fit=crop&q=80",
+                "joining_date": date(2025, 6, 1),
+            },
+        ]
+
+        for emp_info in employee_seeds:
+            emp_u = db.query(User).filter(User.email == emp_info["email"]).first()
+            if not emp_u:
+                emp_u = User(
+                    email=emp_info["email"],
+                    full_name=emp_info["full_name"],
+                    password_hash=hashed_pw,
+                    role="employee",
+                    status="Active",
+                    profile_status="Completed",
+                    current_status="On Duty",
+                )
+                db.add(emp_u)
+                db.flush()
+            else:
+                emp_u.role = "employee"
+                emp_u.full_name = emp_info["full_name"]
+                if not emp_u.password_hash:
+                    emp_u.password_hash = hashed_pw
+
+            emp_prof = db.query(UserProfile).filter(UserProfile.user_id == emp_u.id).first()
+            if not emp_prof:
+                emp_prof = UserProfile(
+                    user_id=emp_u.id,
+                    staff_category="Employee",
+                    employee_id=emp_info["employee_id"],
+                    designation=emp_info["designation"],
+                    department=emp_info["department"],
+                    reporting_manager_id=emp_info["reporting_manager_id"],
+                    mobile=emp_info["mobile"],
+                    city=emp_info["city"],
+                    state=emp_info["state"],
+                    country="India",
+                    skills=emp_info["skills"],
+                    profile_photo=emp_info["profile_photo"],
+                    joining_date=emp_info["joining_date"],
+                )
+                db.add(emp_prof)
+            else:
+                emp_prof.staff_category = "Employee"
+                emp_prof.employee_id = emp_prof.employee_id or emp_info["employee_id"]
+                emp_prof.designation = emp_info["designation"]
+                emp_prof.department = emp_info["department"]
+                emp_prof.reporting_manager_id = emp_info["reporting_manager_id"]
+                emp_prof.mobile = emp_prof.mobile or emp_info["mobile"]
+                emp_prof.city = emp_prof.city or emp_info["city"]
+                emp_prof.state = emp_prof.state or emp_info["state"]
+                emp_prof.country = "India"
+                emp_prof.skills = emp_info["skills"]
+                emp_prof.profile_photo = emp_prof.profile_photo or emp_info["profile_photo"]
+                emp_prof.joining_date = emp_prof.joining_date or emp_info["joining_date"]
+
         db.commit()
 
         # Seed Intern Records under Human Resource Manager

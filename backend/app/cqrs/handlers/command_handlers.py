@@ -90,6 +90,8 @@ class CommandHandlers:
             "human resource manager": "hr",
             "human_resource": "hr",
             "humanresource": "hr",
+            "employee": "employee",
+            "staff": "employee",
         }
         
         user = None
