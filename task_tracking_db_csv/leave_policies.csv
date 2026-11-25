@@ -1,0 +1,7 @@
+id,leave_key,label,description,max_days_limit,updated_by_id,updated_at
+1,single_day,Single Day Leave,One full calendar day off.,4.0,,2026-11-25 16:23:08.833687+05:30
+2,half_day,Half Day Leave,Morning or afternoon half-day leave (0.5 day).,4.0,,2026-11-25 16:23:08.833687+05:30
+3,consecutive_days,Consecutive Days Leave,Continuous multi-day leave across a date range.,7.0,,2026-11-25 16:23:08.833687+05:30
+4,selective_days,Selective Days Leave,Non-consecutive specific dates chosen by the applicant.,5.0,,2026-11-25 16:23:08.833687+05:30
+5,emergency_leave,Emergency Leave,Urgent unplanned leave for personal or family emergencies.,3.0,,2026-11-25 16:23:08.833687+05:30
+6,sick_leave,Sick Leave,Medical or health-related leave.,6.0,,2026-11-25 16:23:08.833687+05:30

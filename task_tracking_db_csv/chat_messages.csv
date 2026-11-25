@@ -1,10 +1,10 @@
 id,conversation_id,sender_id,message_text,message_type,is_read,created_at
 1,1,2,Hello from intern1! This is the first message.,text,False,2026-11-19 15:48:37.729698+05:30
 2,1,6,"Hi intern1! Received your message, this is the second message.",text,True,2026-11-19 15:48:37.752936+05:30
-9,5,2,"Hi HR Manager, checking in on my intern documentation.",text,False,2026-11-19 15:48:37.946245+05:30
+9,5,2,"Hi HR Manager, checking in on my intern documentation.",text,True,2026-11-19 15:48:37.946245+05:30
 10,1,2,Hello from intern1! This is the first message.,text,False,2026-11-19 15:49:57.672250+05:30
 11,1,6,"Hi intern1! Received your message, this is the second message.",text,True,2026-11-19 15:49:57.693494+05:30
-18,5,2,"Hi HR Manager, checking in on my intern documentation.",text,False,2026-11-19 15:49:57.868916+05:30
+18,5,2,"Hi HR Manager, checking in on my intern documentation.",text,True,2026-11-19 15:49:57.868916+05:30
 19,10,12,Ananya Rao created the group 'Intern Frnds',system,True,2026-11-19 16:06:18.148736+05:30
 20,10,11,Hi,text,True,2026-11-19 16:11:20.348197+05:30
 21,10,12,Hello,text,True,2026-11-19 16:11:35.613711+05:30
@@ -13,4 +13,4 @@ id,conversation_id,sender_id,message_text,message_type,is_read,created_at
 24,11,11,how are you?,text,True,2026-11-19 16:29:27.690792+05:30
 25,1,2,Hello from intern1! This is the first message.,text,False,2026-11-19 17:09:22.547747+05:30
 26,1,6,"Hi intern1! Received your message, this is the second message.",text,True,2026-11-19 17:09:22.578094+05:30
-33,5,2,"Hi HR Manager, checking in on my intern documentation.",text,False,2026-11-19 17:09:22.780095+05:30
+33,5,2,"Hi HR Manager, checking in on my intern documentation.",text,True,2026-11-19 17:09:22.780095+05:30
