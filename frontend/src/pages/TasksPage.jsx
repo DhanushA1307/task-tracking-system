@@ -1105,7 +1105,8 @@ export const TasksPage = () => {
               {/* Feature: Total which I assigned or received (Presented for all roles, left side of 'All Tasks' button) */}
               <div className="inline-flex items-center rounded-xl border border-slate-200 bg-slate-50/90 p-0.5 shadow-2xs text-xs">
                 {/* Total */}
-                <button
+                {/* Assigned */}
+                {/* <button
                   type="button"
                   onClick={() => {
                     setTabularTaskScope('successors');
@@ -1130,7 +1131,6 @@ export const TasksPage = () => {
 
                 <div className="h-3.5 w-px bg-slate-200 mx-0.5" />
 
-                {/* Assigned */}
                 <button
                   type="button"
                   onClick={() => {
@@ -1159,7 +1159,6 @@ export const TasksPage = () => {
 
                 <div className="h-3.5 w-px bg-slate-200 mx-0.5" />
 
-                {/* Received */}
                 <button
                   type="button"
                   onClick={() => {
@@ -1179,7 +1178,8 @@ export const TasksPage = () => {
                   <span className={`font-bold ${tabularTaskScope === 'received' ? 'text-white' : 'text-emerald-700'}`}>
                     {taskCounts.received}
                   </span>
-                </button>
+                </button> */}
+                    {/* Received */}
               </div>
 
               {/* Feature 2: All Tasks Toggle Button (Presented in both Tabular and Board Modes, disappears for Intern role/designation) */}
