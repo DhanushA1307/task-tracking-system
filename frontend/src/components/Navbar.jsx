@@ -77,7 +77,8 @@ export const Navbar = ({ onNavigate, currentTab }) => {
     let wsTimeout = null;
     let shouldReconnect = true;
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/api/ws/presence?token=${encodeURIComponent(token)}`;
+    const wsBase = import.meta.env.VITE_WS_URL || `${protocol}//${window.location.host}`;
+    const wsUrl = `${wsBase}/api/ws/presence?token=${encodeURIComponent(token)}`;
 
     const connectWS = () => {
       try {
