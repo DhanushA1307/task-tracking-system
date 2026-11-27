@@ -1,0 +1,65 @@
+[1mDESCRIPTION[0m
+  Supabase CLI.
+
+[1mUSAGE[0m
+  [36msupabase <subcommand> [flags][0m
+
+[1mGLOBAL FLAGS[0m
+  [32m--help[0m, [32m-h[0m                                                          Show help information
+  [32m--version[0m, [32m-v[0m                                                       Show version information
+  [32m--wizard[0m                                                            Start wizard mode for a command
+  [32m--completions[0m [2m<bash|zsh|fish|sh>[0m                                    Print shell completion script (choices: bash, zsh, fish, sh)
+  [32m--log-level[0m [2m<all|trace|debug|info|warn|warning|error|fatal|none>[0m    Sets the minimum log level (choices: all, trace, debug, info, warn, warning, error, fatal, none)
+  [32m--output-format[0m [2mchoice[0m                                              Output format: text, json, or stream-json (NDJSON) (choices: text, json, stream-json) (default: text)
+  [32m--output[0m, [32m-o[0m [2mchoice[0m                                                 output format of status variables (choices: env, pretty, json, toml, yaml, table, csv)
+  [32m--profile[0m [2mstring[0m                                                    use a specific profile for connecting to Supabase API (default: supabase)
+  [32m--debug[0m                                                             output debug logs to stderr
+  [32m--workdir[0m [2mstring[0m                                                    path to the directory containing your supabase/ folder; used exactly as given, with no ancestor directory search (defaults to searching upward from the current directory)
+  [32m--experimental[0m                                                      enable experimental features
+  [32m--network-id[0m [2mstring[0m                                                 use the specified docker network instead of a generated one
+  [32m--yes[0m                                                               answer yes to all prompts; hosted changes only accept this flag or SUPABASE_YES exported in your shell, never supabase/.env or another .env file
+  [32m--dns-resolver[0m [2mchoice[0m                                               lookup domain names using the specified resolver (choices: native, https) (default: native)
+  [32m--agent[0m [2mchoice[0m                                                      Override agent detection: yes, no, or auto (choices: auto, yes, no) (default: auto)
+
+[1mSUBCOMMANDS[0m
+  [36mbackups[0m             Manage Supabase physical backups
+  [36mbootstrap[0m           Bootstrap a Supabase project from a starter template
+  [36mbranches[0m            Manage preview branches
+  [36mcompletion[0m          Generate the autocompletion script for the specified shell
+  [36mconfig[0m              Manage project configurations
+  [36mdb[0m                  Manage databases
+  [36mdomains[0m             Manage custom domain names for Supabase projects
+  [36mencryption[0m          Manage encryption keys
+  [36mfeedback[0m            Send feedback to the Supabase team
+  [36mfunctions[0m           Manage Supabase Edge functions
+  [36mgen[0m                 Run code generation tools
+  [36minit[0m                Initialize a local project  [local only]
+  [36minspect[0m             Inspect project tools
+  [36missue[0m               Open GitHub issue forms
+  [36mlink[0m                Link to a Supabase project  [remote only]
+  [36mlogin[0m               Authenticate using an access token
+  [36mlogout[0m              Log out and delete access tokens locally
+  [36mlogs[0m                Browse local or hosted logs. Arrows select, Enter details, C copies, L loads more logs, and q quits. Custom SQL uses L to rerun. Pipes and machine output read once. Explicit --output-format text disables the viewer. Use --output-format json|stream-json for structured output; -o/--output is unsupported.  [local or remote]
+  [36mmigration, migrations[0m Manage database migration scripts
+  [36mnetwork-bans[0m        Manage network bans
+  [36mnetwork-restrictions[0m Manage network restrictions
+  [36mnotebooks[0m           Manage Supabase notebooks
+  [36morgs[0m                Manage Supabase organizations
+  [36mpostgres-config[0m     Manage Postgres database config
+  [36mprojects[0m            Manage projects
+  [36mpull[0m                Pull remote project state into the local checkout  [remote only]
+  [36msecrets[0m             Manage Supabase secrets
+  [36mseed[0m                Seed a Supabase project
+  [36mservices[0m            Show versions of all Supabase services  [local only]
+  [36msnippets[0m            Manage Supabase SQL snippets
+  [36mssl-enforcement[0m     Manage SSL enforcement
+  [36msso[0m                 Manage Single Sign-On (SSO) authentication
+  [36mstart[0m               Start local Supabase stack  [local only]
+  [36mstatus[0m              Show status of local Supabase containers  [local only]
+  [36mstop[0m                Stop all local Supabase containers  [local only]
+  [36mstorage[0m             Manage Supabase Storage objects
+  [36mtelemetry[0m           Manage telemetry
+  [36mtest[0m                Run tests on local Supabase containers
+  [36munlink[0m              Unlink a Supabase project  [local only]
+  [36mvanity-subdomains[0m   Manage vanity subdomains
+  [36mwhoami[0m              Show the current user
