@@ -1,62 +1,68 @@
 id,user_id,title,message,task_id,link,notification_type,event_id,is_read,created_at,read_at
+3,2,New Assignment,You have been assigned to 'Predecessor / Successor Hierarchy Tree View'.,,,assignment,,True,2026-11-04 14:36:35.782762+05:30,
+75,6,New Task Assigned,You have been assigned task 'Check the Workflow Process',23,,task_assignment,,False,2026-11-20 18:00:47.065710+05:30,
 1,2,Task Overdue Notice,Task 'Legacy Authentication API Deprecation' has exceeded its due date. Please update the status.,,,task_alert,,True,2026-11-04 14:36:35.782762+05:30,2026-11-04 15:01:09.070820+05:30
 2,2,Code Review Requested,Sarah Jenkins reviewed 'Implement Company Logo & Responsive Top Navbar'. Changes approved!,,,review,,True,2026-11-04 14:36:35.782762+05:30,2026-11-04 15:01:09.070820+05:30
-3,2,New Assignment,You have been assigned to 'Predecessor / Successor Hierarchy Tree View'.,,,assignment,,True,2026-11-04 14:36:35.782762+05:30,
+78,3,New Leave Application,Meera Raman applied for 1.0 day(s) (single day).,,#leave,leave_request,,True,2026-11-25 16:47:33.514031+05:30,2026-11-25 16:47:57.537991+05:30
 4,5,Task Status Updated,Task 'Cross-Browser CSS Regression and Color Consistency Check' status was updated from Overdue to In Progress,7,,status_change,,True,2026-11-04 15:00:13.288401+05:30,2026-11-04 15:24:45.565432+05:30
-5,4,Task Status Updated,Task 'Legacy Authentication API Deprecation' status was updated from Overdue to Under Review,6,,status_change,,True,2026-11-04 15:00:34.491755+05:30,2026-11-05 14:36:28.549877+05:30
 6,5,Task Status Updated,Task 'Cross-Browser CSS Regression and Color Consistency Check' status was updated from In Progress to Overdue,7,,status_change,,True,2026-11-04 15:00:49.371176+05:30,2026-11-04 15:24:45.565432+05:30
 7,5,Task Status Updated,Task 'WebSocket Push for Real-Time Task Notifications' status was updated from Backlog to In Progress,9,,status_change,,True,2026-11-04 15:23:20.709137+05:30,2026-11-04 15:24:45.565432+05:30
 8,5,Task Status Updated,Task 'WebSocket Push for Real-Time Task Notifications' status was updated from In Progress to Backlog,9,,status_change,,True,2026-11-04 15:23:26.368109+05:30,2026-11-04 15:24:45.565432+05:30
 9,5,Task Status Updated,Task 'WebSocket Push for Real-Time Task Notifications' status was updated from Backlog to Completed,9,,status_change,,True,2026-11-04 15:54:31.490626+05:30,2026-11-04 15:54:54.155892+05:30
+80,3,New Leave Application,Alex Morgan applied for 0.5 day(s) (half day).,,#leave,leave_request,,True,2026-11-25 16:59:26.289844+05:30,2026-11-25 17:01:46.268743+05:30
+81,4,Leave Approved,Your leave request (0.5 day(s)) was approved by Elizabeth Reed.,,#leave,leave_decision,,True,2026-11-25 17:01:58.791809+05:30,2026-11-26 18:26:30.132116+05:30
+82,17,New Task Assigned,You have been assigned task 'sample',24,,task_assignment,,False,2026-11-26 18:34:15.820436+05:30,
 10,5,New Task Assigned,You have been assigned task 'Sample Context',10,,task_assignment,,True,2026-11-04 15:55:48.499622+05:30,2026-11-04 16:53:57.931100+05:30
-11,2,New Task Assigned,You have been assigned task 'Verify Successor Task Allocation Flow',11,,task_assignment,,True,2026-11-04 16:47:33.042893+05:30,2026-11-05 16:17:28.465608+05:30
-12,6,New Task Assigned,You have been assigned task 'Verify Successor Task Allocation Flow',11,,task_assignment,,True,2026-11-04 16:47:33.042893+05:30,2026-11-04 16:56:14.248309+05:30
 13,5,New Task Assigned,You have been assigned task 'Migrate the DB From local to prod',12,,task_assignment,,True,2026-11-04 16:53:50.039549+05:30,2026-11-04 16:53:57.931100+05:30
+12,6,New Task Assigned,You have been assigned task 'Verify Successor Task Allocation Flow',11,,task_assignment,,True,2026-11-04 16:47:33.042893+05:30,2026-11-04 16:56:14.248309+05:30
 14,6,New Task Assigned,You have been assigned task 'Migrate the DB From local to prod',12,,task_assignment,,True,2026-11-04 16:53:50.039549+05:30,2026-11-04 16:56:14.248309+05:30
-15,2,New Task Assigned,You have been assigned task 'Sample Context',13,,task_assignment,,True,2026-11-04 17:01:30.020587+05:30,2026-11-05 16:17:28.465608+05:30
 16,6,New Task Assigned,You have been assigned task 'Sample Context',13,,task_assignment,,True,2026-11-04 17:01:30.020587+05:30,2026-11-04 18:43:19.508484+05:30
+5,4,Task Status Updated,Task 'Legacy Authentication API Deprecation' status was updated from Overdue to Under Review,6,,status_change,,True,2026-11-04 15:00:34.491755+05:30,2026-11-05 14:36:28.549877+05:30
+11,2,New Task Assigned,You have been assigned task 'Verify Successor Task Allocation Flow',11,,task_assignment,,True,2026-11-04 16:47:33.042893+05:30,2026-11-05 16:17:28.465608+05:30
+15,2,New Task Assigned,You have been assigned task 'Sample Context',13,,task_assignment,,True,2026-11-04 17:01:30.020587+05:30,2026-11-05 16:17:28.465608+05:30
 17,5,Task Status Updated,Task 'Migrate the DB From local to prod' status was updated from Backlog to Under Review,12,,status_change,,True,2026-11-05 14:13:34.996130+05:30,2026-11-05 17:47:07.920867+05:30
 18,5,Task Status Updated,Task 'Migrate the DB From local to prod' status was updated from Under Review to Completed,12,,status_change,,True,2026-11-05 16:18:09.171261+05:30,2026-11-05 17:47:07.920867+05:30
 19,5,Task Status Updated,Task 'Predecessor / Successor Hierarchy Tree View' status was updated from Under Review to Completed,8,,status_change,,True,2026-11-05 17:42:26.341497+05:30,2026-11-05 17:47:07.920867+05:30
-20,2,New Task Assigned,You have been assigned task 'Design the UI Project',14,,task_assignment,,True,2026-11-05 17:45:58.050935+05:30,2026-11-05 17:53:00.077923+05:30
 21,4,Task Status Updated,Task 'Design the UI Project' status was updated from Backlog to Completed,14,,status_change,,True,2026-11-05 17:46:21.870229+05:30,2026-11-05 17:51:12.231103+05:30
+20,2,New Task Assigned,You have been assigned task 'Design the UI Project',14,,task_assignment,,True,2026-11-05 17:45:58.050935+05:30,2026-11-05 17:53:00.077923+05:30
 22,2,New Task Assigned,You have been assigned task 'Learning Concept',15,,task_assignment,,True,2026-11-05 17:55:25.537262+05:30,2026-11-05 17:56:09.603342+05:30
-23,6,New Task Assigned,You have been assigned task 'Learning Concept',15,,task_assignment,,True,2026-11-05 17:55:25.537262+05:30,2026-11-05 18:20:47.057579+05:30
 24,3,Task Status Updated,Task 'Learning Concept' status was updated from Backlog to Completed,15,,status_change,,True,2026-11-05 18:04:16.381214+05:30,2026-11-05 18:04:27.930532+05:30
-25,4,Task Status Updated,Task 'Legacy Authentication API Deprecation' status was updated from Under Review to Completed,6,,status_change,,True,2026-11-05 18:05:34.091513+05:30,2026-11-17 23:58:44.168098+05:30
+23,6,New Task Assigned,You have been assigned task 'Learning Concept',15,,task_assignment,,True,2026-11-05 17:55:25.537262+05:30,2026-11-05 18:20:47.057579+05:30
 26,5,Task Status Updated,Task 'Cross-Browser CSS Regression and Color Consistency Check' status was updated from Overdue to Completed,7,,status_change,,True,2026-11-05 18:05:42.711762+05:30,2026-11-06 09:26:22.161715+05:30
 27,5,Task Status Updated,Task 'Sample Context' status was updated from Backlog to Completed,10,,status_change,,True,2026-11-05 18:05:50.164299+05:30,2026-11-06 09:26:22.161715+05:30
-28,2,New Task Assigned,You have been assigned task 'Implement the Backend API',16,,task_assignment,,True,2026-11-06 11:02:31.304143+05:30,2026-11-07 10:18:23.423310+05:30
 29,3,Task Status Updated,Task 'Implement the Backend API' status was updated from In Progress to Completed,16,,status_change,,True,2026-11-06 11:03:36.963186+05:30,2026-11-06 11:22:56.401629+05:30
 30,5,Task Status Updated,Task 'Sample Context' status was updated from In Progress to Under Review,13,,status_change,,True,2026-11-06 11:03:46.160531+05:30,2026-11-06 13:55:22.994505+05:30
-31,2,New Task Assigned,You have been assigned task 'Applications Developement',17,,task_assignment,,True,2026-11-06 13:50:12.130246+05:30,2026-11-07 10:18:23.423310+05:30
-32,3,Task Status Updated,Task 'Applications Developement' status was updated from Backlog to In Progress,17,,status_change,,True,2026-11-06 13:52:19.681514+05:30,2026-11-06 14:18:07.517042+05:30
 33,5,Task Status Updated,Task 'Verify Successor Task Allocation Flow' status was updated from In Progress to Under Review,11,,status_change,,True,2026-11-06 13:52:32.242586+05:30,2026-11-06 13:55:22.994505+05:30
 34,5,Task Status Updated,Task 'Settings Profile Page with 7 Mandatory Attributes' status was updated from In Progress to Under Review,5,,status_change,,True,2026-11-06 13:52:42.951826+05:30,2026-11-06 13:55:22.994505+05:30
 35,5,Task Status Updated,Task 'Build Kanban Board & Tabular View for My Tasks' status was updated from In Progress to Under Review,4,,status_change,,True,2026-11-06 13:52:52.846553+05:30,2026-11-06 13:55:22.994505+05:30
+32,3,Task Status Updated,Task 'Applications Developement' status was updated from Backlog to In Progress,17,,status_change,,True,2026-11-06 13:52:19.681514+05:30,2026-11-06 14:18:07.517042+05:30
 36,6,New Task Assigned,You have been assigned task 'API Test Task With From Date',18,,task_assignment,,False,2026-11-06 14:41:51.620693+05:30,
-37,4,Task Status Updated,Task 'API Test Task With From Date' status was updated from In Progress to Completed,18,,status_change,,True,2026-11-06 14:48:53.574985+05:30,2026-11-17 23:58:44.168098+05:30
+28,2,New Task Assigned,You have been assigned task 'Implement the Backend API',16,,task_assignment,,True,2026-11-06 11:02:31.304143+05:30,2026-11-07 10:18:23.423310+05:30
+31,2,New Task Assigned,You have been assigned task 'Applications Developement',17,,task_assignment,,True,2026-11-06 13:50:12.130246+05:30,2026-11-07 10:18:23.423310+05:30
 38,5,Task Status Updated,Task 'Verify Successor Task Allocation Flow' status was updated from Under Review to Completed,11,,status_change,,True,2026-11-06 14:50:03.201548+05:30,2026-11-07 13:27:55.551198+05:30
 39,5,Task Status Updated,Task 'Settings Profile Page with 7 Mandatory Attributes' status was updated from Under Review to Completed,5,,status_change,,True,2026-11-07 13:25:45.842196+05:30,2026-11-07 13:27:55.551198+05:30
 40,5,Task Status Updated,Task 'Build Kanban Board & Tabular View for My Tasks' status was updated from Under Review to Completed,4,,status_change,,True,2026-11-07 13:25:51.138079+05:30,2026-11-07 13:27:55.551198+05:30
-41,2,New Task Assigned,You have been assigned task 'E2E SSE Realtime Notification Test Task',19,,task_assignment,,True,2026-11-10 10:08:51.153328+05:30,2026-11-13 14:27:13.386692+05:30
-42,4,Task Status Updated,Task 'E2E SSE Realtime Notification Test Task' status was updated from Todo to Under Review,19,,status_change,,True,2026-11-10 10:38:35.502149+05:30,2026-11-17 23:58:44.168098+05:30
-43,4,Task Status Updated,Task 'E2E SSE Realtime Notification Test Task' status was updated from Under Review to Completed,19,,status_change,,True,2026-11-13 13:13:16.885490+05:30,2026-11-17 23:58:44.168098+05:30
-44,2,New Task Assigned,You have been assigned task 'Analyze Overview',20,,task_assignment,,True,2026-11-13 13:41:58.948848+05:30,2026-11-13 14:27:13.386692+05:30
+25,4,Task Status Updated,Task 'Legacy Authentication API Deprecation' status was updated from Under Review to Completed,6,,status_change,,True,2026-11-05 18:05:34.091513+05:30,2026-11-17 23:58:44.168098+05:30
 45,12,New Task Assigned,You have been assigned task 'Analyze Overview',20,,task_assignment,,True,2026-11-13 13:41:58.948848+05:30,2026-11-13 13:42:23.485690+05:30
 46,5,Task Status Updated,Task 'Analyze Overview' status was updated from Under Review to In Progress,20,,status_change,,True,2026-11-13 14:17:30.040375+05:30,2026-11-13 14:18:26.088822+05:30
 47,5,Task Status Updated,Task 'Analyze Overview' status was updated from In Progress to Completed,20,,status_change,,True,2026-11-13 14:20:56.068696+05:30,2026-11-13 14:27:03.122732+05:30
-48,2,New Task Assigned,You have been assigned task 'Dashboard Review',21,,task_assignment,,True,2026-11-13 14:57:49.513401+05:30,2026-11-13 14:59:48.188734+05:30
-49,12,New Task Assigned,You have been assigned task 'Dashboard Review',21,,task_assignment,,True,2026-11-13 14:57:49.513401+05:30,2026-11-13 14:59:24.265473+05:30
-50,6,New Task Assigned,You have been assigned task 'Dashboard Review',21,,task_assignment,,False,2026-11-13 14:57:49.513401+05:30,
+41,2,New Task Assigned,You have been assigned task 'E2E SSE Realtime Notification Test Task',19,,task_assignment,,True,2026-11-10 10:08:51.153328+05:30,2026-11-13 14:27:13.386692+05:30
+44,2,New Task Assigned,You have been assigned task 'Analyze Overview',20,,task_assignment,,True,2026-11-13 13:41:58.948848+05:30,2026-11-13 14:27:13.386692+05:30
 51,5,Task Status Updated,Task 'Dashboard Review' status was updated from In Progress to Under Review,21,,status_change,,True,2026-11-13 14:59:31.602058+05:30,2026-11-19 18:23:02.455732+05:30
 52,5,Task Status Updated,Task 'Dashboard Review' status was updated from Under Review to Completed,21,,status_change,,True,2026-11-13 15:50:54.666593+05:30,2026-11-19 18:23:02.455732+05:30
+50,6,New Task Assigned,You have been assigned task 'Dashboard Review',21,,task_assignment,,False,2026-11-13 14:57:49.513401+05:30,
+49,12,New Task Assigned,You have been assigned task 'Dashboard Review',21,,task_assignment,,True,2026-11-13 14:57:49.513401+05:30,2026-11-13 14:59:24.265473+05:30
+48,2,New Task Assigned,You have been assigned task 'Dashboard Review',21,,task_assignment,,True,2026-11-13 14:57:49.513401+05:30,2026-11-13 14:59:48.188734+05:30
 53,1,New Task Assigned,You have been assigned task 'Review the Project',22,,task_assignment,,True,2026-11-16 18:54:40.615123+05:30,2026-11-17 10:37:56.571270+05:30
+37,4,Task Status Updated,Task 'API Test Task With From Date' status was updated from In Progress to Completed,18,,status_change,,True,2026-11-06 14:48:53.574985+05:30,2026-11-17 23:58:44.168098+05:30
+42,4,Task Status Updated,Task 'E2E SSE Realtime Notification Test Task' status was updated from Todo to Under Review,19,,status_change,,True,2026-11-10 10:38:35.502149+05:30,2026-11-17 23:58:44.168098+05:30
+43,4,Task Status Updated,Task 'E2E SSE Realtime Notification Test Task' status was updated from Under Review to Completed,19,,status_change,,True,2026-11-13 13:13:16.885490+05:30,2026-11-17 23:58:44.168098+05:30
 54,3,Task Status Updated,Task 'Review the Project' status was updated from In Progress to Completed,22,,status_change,,True,2026-11-18 13:18:47.161668+05:30,2026-11-18 17:10:42.540390+05:30
-75,6,New Task Assigned,You have been assigned task 'Check the Workflow Process',23,,task_assignment,,False,2026-11-20 18:00:47.065710+05:30,
 76,4,Task Status Updated,Task 'Check the Workflow Process' status was updated from Backlog to Under Review,23,,status_change,,True,2026-11-20 18:32:27.602234+05:30,2026-11-20 18:42:36.168247+05:30
 77,4,Task Status Updated,Task 'Check the Workflow Process' status was updated from Under Review to Completed,23,,status_change,,True,2026-11-20 18:32:42.883290+05:30,2026-11-20 18:42:36.168247+05:30
-78,3,New Leave Application,Meera Raman applied for 1.0 day(s) (single day).,,#leave,leave_request,,True,2026-11-25 16:47:33.514031+05:30,2026-11-25 16:47:57.537991+05:30
 79,10,Leave Approved,Your leave request (1.0 day(s)) was approved by Elizabeth Reed.,,#leave,leave_decision,,True,2026-11-25 16:47:54.341131+05:30,2026-11-25 16:48:42.005016+05:30
-80,3,New Leave Application,Alex Morgan applied for 0.5 day(s) (half day).,,#leave,leave_request,,True,2026-11-25 16:59:26.289844+05:30,2026-11-25 17:01:46.268743+05:30
-81,4,Leave Approved,Your leave request (0.5 day(s)) was approved by Elizabeth Reed.,,#leave,leave_decision,,False,2026-11-25 17:01:58.791809+05:30,
+83,12,New Task Assigned,You have been assigned task 'sample',24,,task_assignment,,False,2026-11-26 18:34:15.820436+05:30,
+84,4,Task Status Updated,Task 'sample' status was updated from Backlog to In Progress,24,,status_change,,True,2026-11-26 18:35:47.402529+05:30,2026-11-27 11:15:42.050088+05:30
+85,4,Task Status Updated,Task 'sample' status was updated from In Progress to Backlog,24,,status_change,,True,2026-11-26 18:36:03.351705+05:30,2026-11-27 11:15:42.050088+05:30
+86,4,Task Status Updated,Task 'sample' status was updated from Backlog to In Progress,24,,status_change,,True,2026-11-26 18:36:13.486305+05:30,2026-11-27 11:15:42.050088+05:30
+87,4,Task Status Updated,Task 'sample' status was updated from In Progress to Under Review,24,,status_change,,True,2026-11-26 18:36:22.557595+05:30,2026-11-27 11:15:42.050088+05:30
